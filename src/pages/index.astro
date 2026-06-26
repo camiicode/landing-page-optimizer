@@ -85,11 +85,11 @@ const features = [
   <!-- ══════════════════════════════════════════════════════════════
        HEADER
   ════════════════════════════════════════════════════════════════ -->
-  <header class="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0a0a0a]/80 backdrop-blur-md">
-    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+  <header class="sticky top-0 z-50 border-b border-white/6 bg-brand/80 backdrop-blur-md">
+    <div class="mx-auto! flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
 
       <!-- Logo -->
-      <a href="/" class="flex items-center gap-2 group" aria-label="LandingLens AI — Inicio">
+      <a href="/" class="flex items-center gap-2 group" aria-label="LPO — Inicio">
         <!-- Icono del logo -->
         <div class="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 transition-transform duration-200 group-hover:scale-105">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -99,7 +99,7 @@ const features = [
         </div>
         <!-- Nombre del producto -->
         <span class="text-sm font-semibold tracking-tight text-white">
-          LandingLens <span class="text-indigo-400">AI</span>
+          <span class="text-indigo-400">LPO</span>
         </span>
       </a>
 
@@ -107,13 +107,13 @@ const features = [
       <nav class="flex items-center gap-1" aria-label="Navegación principal">
         <a
           href="#"
-          class="rounded-md px-3 py-1.5 text-sm text-white/50 transition-colors hover:bg-white/[0.05] hover:text-white/80"
+          class="rounded-md px-3! py-1.5 text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
         >
           Documentación
         </a>
         <a
-          href="#"
-          class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-white/50 transition-colors hover:bg-white/[0.05] hover:text-white/80"
+          href="https://github.com/camiicode/LandingLensAI"
+          class="flex items-center gap-1.5 rounded-md px-3! py-1.5! text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
         >
           <!-- Ícono de GitHub -->
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -131,7 +131,7 @@ const features = [
     <!-- ══════════════════════════════════════════════════════════════
          HERO SECTION
     ════════════════════════════════════════════════════════════════ -->
-    <section class="relative overflow-hidden pb-20 pt-24 sm:pt-32" aria-labelledby="hero-heading">
+    <section class="relative overflow-hidden pb-20! pt-24! sm:pt-32 flex items-center flex-col" aria-labelledby="hero-heading">
 
       <!-- Gradiente de fondo decorativo -->
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -163,7 +163,7 @@ const features = [
           Optimiza tus conversiones
           <br />
           <span
-            class="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent"
+            class="bg-linear-to-r from-indigo-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent"
           >
             con inteligencia artificial
           </span>
@@ -177,10 +177,10 @@ const features = [
         <!-- ── Formulario de URL ── -->
         <div class="mx-auto max-w-xl">
           <div
-            class="relative flex items-center gap-2 rounded-xl border border-white/[0.09] bg-white/[0.03] p-2 shadow-2xl shadow-black/50 backdrop-blur-sm transition-all duration-300 focus-within:border-indigo-500/50 focus-within:bg-white/[0.05] focus-within:shadow-indigo-500/10"
+            class="relative flex items-center gap-2 rounded-xl border border-white/9 bg-white/3 p-2 shadow-2xl shadow-black/50 backdrop-blur-sm transition-all duration-300 focus-within:border-indigo-500/50 focus-within:bg-white/5 focus-within:shadow-indigo-500/10"
           >
             <!-- Ícono de URL dentro del input -->
-            <div class="flex-shrink-0 pl-2 text-white/30">
+            <div class="shrink-0 pl-2 text-white/30">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
@@ -202,7 +202,7 @@ const features = [
             <button
               id="analyze-btn"
               type="button"
-              class="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-500 hover:shadow-indigo-500/30 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-transparent"
+              class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-500 hover:shadow-indigo-500/30 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-transparent"
               aria-label="Analizar landing page"
             >
               Analizar
@@ -241,7 +241,7 @@ const features = [
         <!-- Pasos -->
         <div class="grid gap-4 sm:grid-cols-3">
           {steps.map((step) => (
-            <div class="group relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.02] p-6 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]">
+            <div class="group relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/2 p-6 transition-all duration-300 hover:border-white/12 hover:bg-white/4">
 
               <!-- Gradiente hover -->
               <div
@@ -251,7 +251,7 @@ const features = [
               ></div>
 
               <!-- Número de paso -->
-              <span class="mb-5 block font-mono text-4xl font-bold leading-none text-white/[0.06] select-none">
+              <span class="mb-5 block font-mono text-4xl font-bold leading-none text-white/6 select-none">
                 {step.number}
               </span>
 
@@ -310,7 +310,7 @@ const features = [
     ════════════════════════════════════════════════════════════════ -->
     <section class="py-20 sm:py-28">
       <div class="mx-auto max-w-2xl px-4 text-center sm:px-6">
-        <div class="rounded-2xl border border-indigo-500/15 bg-indigo-500/[0.06] p-10 sm:p-14">
+        <div class="rounded-2xl border border-indigo-500/15 bg-indigo-500/6 p-10 sm:p-14">
           <h2 class="mb-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Empieza a optimizar ahora
           </h2>
@@ -319,7 +319,7 @@ const features = [
           </p>
           <button
             type="button"
-            class="cta-scroll inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-500 hover:shadow-indigo-500/30 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
+            class="cta-scroll inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-500 hover:shadow-indigo-500/30 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-brand-bg"
           >
             Analizar mi landing page
             <Fragment set:html={iconArrow} />
@@ -333,12 +333,12 @@ const features = [
   <!-- ══════════════════════════════════════════════════════════════
        FOOTER
   ════════════════════════════════════════════════════════════════ -->
-  <footer class="border-t border-white/[0.06] py-8">
+  <footer class="border-t border-white/6 py-8">
     <div class="mx-auto max-w-6xl px-4 sm:px-6">
       <div class="flex flex-col items-center justify-between gap-3 sm:flex-row">
         <!-- Nombre y año -->
         <p class="text-xs text-white/25">
-          © {new Date().getFullYear()} LandingLens AI — Todos los derechos reservados.
+          © {new Date().getFullYear()} LPO — Landing Page Optimizer
         </p>
         <!-- Links de pie -->
         <div class="flex items-center gap-4">
@@ -357,14 +357,14 @@ const features = [
     role="alert"
     aria-live="assertive"
     aria-atomic="true"
-    class="pointer-events-none fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 opacity-0"
+    class="pointer-events-none fixed bottom-6 left-1/2 z-100 -translate-x-1/2 opacity-0"
     style="transition: opacity 0.3s ease;"
   >
     <div
       id="toast-inner"
       class="flex items-center gap-2.5 rounded-lg border px-4 py-3 text-sm font-medium shadow-2xl"
     >
-      <span id="toast-icon" class="flex-shrink-0" aria-hidden="true"></span>
+      <span id="toast-icon" class="shrink-0" aria-hidden="true"></span>
       <span id="toast-message"></span>
     </div>
   </div>

@@ -7,7 +7,7 @@ interface Props {
 }
 
 const {
-  title = "LandingLens AI — Optimiza tus conversiones",
+  title = "LPO — Optimiza tus conversiones",
   description = "Analiza cualquier landing page con IA y recibe recomendaciones accionables para mejorar tus conversiones en segundos.",
 } = Astro.props;
 ---
@@ -32,8 +32,6 @@ const {
     <style is:global>
       *, *::before, *::after {
         box-sizing: border-box;
-        margin: 0;
-        padding: 0;
       }
 
       html {
@@ -93,7 +91,7 @@ const {
     </style>
   </head>
 
-  <body class="min-h-screen bg-[#0a0a0a] text-white antialiased">
+  <body class="min-h-screen bg-brand-bg text-white antialiased">
     <slot />
   </body>
 </html>

@@ -1,4 +1,4 @@
-# LandingLensAI
+# LPO — Landing Page Optimizer
 
 Plataforma de análisis de landing pages impulsada por IA para optimizar conversiones. Analiza copy, CTAs, accesibilidad, SEO, señales de confianza y UX, y genera recomendaciones accionables.
 
