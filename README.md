@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Astro Starter Kit: Basics
 
 ```sh
@@ -44,3 +45,7 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+=======
+# LandingLensAI
+LandingLensAI is an AI-powered landing page analysis platform that helps marketing teams optimize conversions. It analyzes landing pages for copy, CTAs, accessibility, SEO, trust signals, and user experience, then provides actionable recommendations and AI-generated improvements to maximize campaign performance.
+>>>>>>> bcd93557a18a9951bc9609a8f124fe283eec3268
