@@ -1,0 +1,19 @@
+---
+export interface Props {
+  text?: string;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const { text = 'Cargando...', size = 'md' } = Astro.props;
+
+const sizeClasses = {
+  sm: 'w-5 h-5 border-2',
+  md: 'w-8 h-8 border-3',
+  lg: 'w-12 h-12 border-4',
+};
+---
+
+<div class="flex flex-col items-center justify-center gap-4">
+  <div class="{sizeClasses[size]} rounded-full border-t-transparent border-indigo-500 animate-spin"></div>
+  {text && <p class="text-gray-400 text-sm">{text}</p>}
+</div>
