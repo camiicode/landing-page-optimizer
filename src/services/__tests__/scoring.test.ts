@@ -332,4 +332,73 @@ describe('calculateScore', () => {
     });
   });
 
+  describe('composite section formulas', () => {
+    it('socialProof: 0 images, 0 links = 40', () => {
+      const result = calculateScore(mockData({ images: [], links: [] }));
+      expect(result.sections.socialProof).toBe(40);
+    });
+
+    it('socialProof: 0 images, 6 links = 60', () => {
+      const result = calculateScore(mockData({
+        images: [],
+        links: Array.from({ length: 6 }, (_, i) => ({ href: `/${i}`, text: `${i}` })),
+      }));
+      expect(result.sections.socialProof).toBe(60);
+    });
+
+    it('socialProof: 2 images, 0 links = 80', () => {
+      const result = calculateScore(mockData({
+        images: [{ src: 'https://ex.com/a.jpg', alt: 'A' }, { src: 'https://ex.com/b.jpg', alt: 'B' }],
+        links: [],
+      }));
+      expect(result.sections.socialProof).toBe(80);
+    });
+
+    it('socialProof: 2 images, 6 links = 100', () => {
+      const result = calculateScore(mockData({
+        images: [{ src: 'https://ex.com/a.jpg', alt: 'A' }, { src: 'https://ex.com/b.jpg', alt: 'B' }],
+        links: Array.from({ length: 6 }, (_, i) => ({ href: `/${i}`, text: `${i}` })),
+      }));
+      expect(result.sections.socialProof).toBe(100);
+    });
+
+    it('accessibility: 0 headings, 0 images = 25', () => {
+      const result = calculateScore(mockData({ headings: [], images: [] }));
+      expect(result.sections.accessibility).toBe(25);
+    });
+
+    it('accessibility: 2 headings, 0 images = 75', () => {
+      const result = calculateScore(mockData({
+        headings: [{ level: 1, text: 'A' }, { level: 2, text: 'B' }],
+        images: [],
+      }));
+      expect(result.sections.accessibility).toBe(75);
+    });
+
+    it('accessibility: 2 headings, 1 image = 100', () => {
+      const result = calculateScore(mockData({
+        headings: [{ level: 1, text: 'A' }, { level: 2, text: 'B' }],
+        images: [{ src: 'https://ex.com/a.jpg', alt: 'A' }],
+      }));
+      expect(result.sections.accessibility).toBe(100);
+    });
+
+    it('hero: 0 title, 0 headings = 0', () => {
+      const result = calculateScore(mockData({ title: '', headings: [] }));
+      expect(result.sections.hero).toBe(0);
+    });
+
+    it('hero: good title + 2 headings = 100', () => {
+      const result = calculateScore(mockData({
+        title: 'Perfect title length for optimal SEO results here',
+        headings: [{ level: 1, text: 'H1' }, { level: 2, text: 'H2' }],
+      }));
+      expect(result.sections.hero).toBe(100);
+    });
+
+    it('hero: short title + 1 heading = 50', () => {
+      const result = calculateScore(mockData({ title: 'Short', headings: [{ level: 1, text: 'A' }] }));
+      expect(result.sections.hero).toBe(50);
+    });
+  });
 });
