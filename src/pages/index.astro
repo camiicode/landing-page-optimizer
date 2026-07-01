@@ -512,8 +512,12 @@ const features = [
         loadingContainer.classList.remove('flex');
         if (/timeout/i.test(msg)) {
           (window as any).showErrorModal?.();
+        } else if (/ERR_NAME_NOT_RESOLVED|ENOTFOUND/i.test(msg)) {
+          showToast('The domain was not found. Check that the URL is correct and publicly accessible.', 'error');
+        } else if (/ERR_CONNECTION_REFUSED|ECONNREFUSED/i.test(msg)) {
+          showToast('The connection was refused. The server may be blocking automated analysis tools.', 'error');
         } else {
-          showToast(`❌ Error: ${msg || 'Unknown error'}`, 'error');
+          showToast('Could not analyze the URL. Check the address and try again.', 'error');
         }
       }
     }
