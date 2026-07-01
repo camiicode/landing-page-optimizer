@@ -373,8 +373,9 @@ const features = [
        LÓGICA DEL CLIENTE (TypeScript)
   ════════════════════════════════════════════════════════════════ -->
   <script>
-    // ── Base path para API ──────────────────────────────────────
+    // ── Rutas ───────────────────────────────────────────────────
     const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
+    const RENDER_API = 'https://lpo-backend.onrender.com';
 
     // ── Referencias al DOM ────────────────────────────────────────
     const urlInput   = document.getElementById('url-input')    as HTMLInputElement;
@@ -469,7 +470,7 @@ const features = [
       showToast(`Analizando ${url}…`, 'success');
 
       try {
-        const response = await fetch(`${basePath}/api/extract`, {
+        const response = await fetch(`${RENDER_API}/api/extract`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url }),
@@ -481,8 +482,7 @@ const features = [
           throw new Error(result.error || 'Error al analizar la página');
         }
 
-        const d = result.data;
-        sessionStorage.setItem('extractedData', JSON.stringify(d));
+        sessionStorage.setItem('extractionResult', JSON.stringify({ data: result.data, score: result.score }));
         window.location.href = `${basePath}/analyze?url=${encodeURIComponent(url)}`;
       } catch (error) {
         showToast(

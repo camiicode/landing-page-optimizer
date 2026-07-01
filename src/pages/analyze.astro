@@ -13,6 +13,7 @@ const urlParam = Astro.url.searchParams.get('url');
   <script>
     // ── Helpers ──────────────────────────────────────────────────
     const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
+    const RENDER_API = 'https://lpo-backend.onrender.com';
 
     function clamp(n: number) { return Math.min(100, Math.max(0, n)); }
 
@@ -127,14 +128,13 @@ const urlParam = Astro.url.searchParams.get('url');
 
     // ── Flujo principal ──────────────────────────────────────────
     (async () => {
-      const stored = sessionStorage.getItem('extractedData');
+      const stored = sessionStorage.getItem('extractionResult');
       const urlParam = new URLSearchParams(window.location.search).get('url');
 
       if (stored) {
         try {
-          const data = JSON.parse(stored);
+          const { data, score } = JSON.parse(stored);
           if (data?.url) {
-            const score = (await import('../services/scoring.ts')).calculateScore(data);
             renderDashboard(data, score);
             return;
           }
@@ -148,7 +148,7 @@ const urlParam = Astro.url.searchParams.get('url');
         if (root) root.innerHTML = '<div class="flex flex-col items-center justify-center gap-4 mt-20"><div class="w-12 h-12 rounded-full border-4 border-t-transparent border-indigo-500 animate-spin"></div><p class="text-gray-400">Recuperando datos...</p></div>';
 
         try {
-          const res = await fetch(`${basePath}/api/extract`, {
+          const res = await fetch(`${RENDER_API}/api/extract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: urlParam }),
@@ -156,9 +156,8 @@ const urlParam = Astro.url.searchParams.get('url');
           const result = await res.json();
           if (!res.ok || !result.success) throw new Error(result.error);
 
-          const data = result.data;
-          sessionStorage.setItem('extractedData', JSON.stringify(data));
-          const score = (await import('../services/scoring.ts')).calculateScore(data);
+          const { data, score } = result;
+          sessionStorage.setItem('extractionResult', JSON.stringify({ data, score }));
           renderDashboard(data, score);
         } catch (err: any) {
           if (root) {
