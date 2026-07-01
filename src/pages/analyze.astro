@@ -1,0 +1,180 @@
+---
+import BaseLayout from '../components/layout/BaseLayout.astro';
+import Loading from '../components/common/Loading.astro';
+
+const urlParam = Astro.url.searchParams.get('url');
+---
+
+<BaseLayout title="Resultados del analisis - LPO">
+  <div id="analysis-root" class="max-w-6xl mx-auto px-4 py-8 min-h-screen">
+    <Loading text="Preparando resultados..." size="lg" />
+  </div>
+
+  <script>
+    // ── Helpers ──────────────────────────────────────────────────
+    const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
+
+    function clamp(n: number) { return Math.min(100, Math.max(0, n)); }
+
+    function scoreColor(s: number) {
+      return s >= 70 ? 'text-green-400' : s >= 50 ? 'text-yellow-400' : 'text-red-400';
+    }
+
+    function scoreBg(s: number) {
+      return s >= 70 ? 'bg-green-500/20 text-green-300' : s >= 50 ? 'bg-yellow-500/20 text-yellow-300' : 'bg-red-500/20 text-red-300';
+    }
+
+    function gaugeSvg(score: number) {
+      const clamped = clamp(score);
+      const circ = 2 * Math.PI * 40;
+      const offset = circ - (clamped / 100) * circ;
+      const color = clamped >= 70 ? '#34d399' : clamped >= 50 ? '#fbbf24' : '#f87171';
+      return `
+        <div class="w-40 h-40 relative">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#2a2a2a" stroke-width="8"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="${color}" stroke-width="8"
+              stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+              class="transition-all duration-1000 ease-out"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-3xl font-bold text-white">${clamped}</span>
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider">Puntaje</span>
+          </div>
+        </div>`;
+    }
+
+    function sectionCard(title: string, score: number, message?: string) {
+      return `
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5 hover:border-white/20 transition">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-medium text-white">${title}</h3>
+            <span class="text-sm font-bold ${scoreColor(score)}">${score}/100</span>
+          </div>
+          ${message ? `<p class="text-sm text-gray-300">${message}</p>` : ''}
+        </div>`;
+    }
+
+    function renderDashboard(data: any, score: any) {
+      const root = document.getElementById('analysis-root');
+      if (!root) return;
+
+      const label =
+        score.overall >= 70 ? 'Buena' :
+        score.overall >= 50 ? 'Mejorable' : 'Critica';
+
+      const sectionConfigs = [
+        { key: 'hero', title: 'Hero / Propuesta de valor', score: score.sections.hero },
+        { key: 'ctas', title: 'Llamadas a la accion (CTAs)', score: score.sections.ctas },
+        { key: 'forms', title: 'Formularios', score: score.sections.forms },
+        { key: 'seo', title: 'SEO', score: score.sections.seo },
+        { key: 'accessibility', title: 'Accesibilidad', score: score.sections.accessibility },
+        { key: 'socialProof', title: 'Prueba social', score: score.sections.socialProof },
+      ];
+
+      const sectionCards = sectionConfigs.map(cfg => {
+        const detail = score.sectionMessages[cfg.key];
+        return sectionCard(cfg.title, cfg.score, detail?.message || 'No evaluado');
+      }).join('');
+
+      const headingsHtml = data.headings.length
+        ? data.headings.map((h: any) => `<span class="inline-block bg-white/5 px-2 py-0.5 rounded text-xs">${'#'.repeat(h.level)} ${h.text}</span>`).join(' ')
+        : 'Ninguno';
+
+      root.innerHTML = `
+        <a href="${basePath}/" class="text-indigo-400 hover:text-indigo-300 transition text-sm inline-block mb-6">
+          &larr; Volver al inicio
+        </a>
+
+        <h1 class="text-3xl font-bold text-white mb-2">Resultados del analisis</h1>
+        <p class="text-gray-400 text-sm mb-8 break-all">${data.url} &bull; ${new Date(data.timestamp).toLocaleString()}</p>
+
+        <div class="flex flex-col md:flex-row items-center gap-8 bg-white/5 border border-white/10 rounded-2xl p-8 mb-8">
+          ${gaugeSvg(score.overall)}
+          <div class="flex-1 text-center md:text-left">
+            <h2 class="text-xl font-semibold text-white mb-2">Resumen</h2>
+            <p class="text-gray-300">${data.title || 'Sin titulo'}</p>
+            <p class="text-gray-400 text-sm mt-2">
+              ${data.ctas.length} CTAs &bull; ${data.forms.length} formularios &bull; ${data.images.length} imagenes &bull; ${data.headings.length} headings
+            </p>
+            <div class="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
+              <span class="text-xs ${scoreBg(score.overall)} px-3 py-1 rounded-full font-medium">${label}</span>
+              <span class="text-xs bg-white/5 text-gray-400 px-3 py-1 rounded-full">${score.overall}/100 general</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="text-xl font-semibold text-white mb-4">Analisis por seccion</h2>
+        <div class="grid md:grid-cols-2 gap-4 mb-8">
+          ${sectionCards}
+        </div>
+
+        <h2 class="text-xl font-semibold text-white mb-4">Detalles extraidos</h2>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5 text-sm text-gray-300 space-y-3">
+          <div><strong class="text-white">Titulo:</strong> ${data.title || 'No disponible'}</div>
+          <div><strong class="text-white">Descripcion:</strong> ${data.description || 'No disponible'}</div>
+          <div><strong class="text-white">Idioma:</strong> ${data.language || 'No detectado'}</div>
+          <div><strong class="text-white">Headings:</strong> <span class="flex flex-wrap gap-1 mt-1">${headingsHtml}</span></div>
+          <div><strong class="text-white">CTAs detectados:</strong> ${data.ctas.length ? data.ctas.map((c: any) => '"' + c.text + '"').join(', ') : 'Ninguno'}</div>
+          ${data.meta?.ogTitle ? `<div><strong class="text-white">OG Title:</strong> ${data.meta.ogTitle}</div>` : ''}
+          ${data.meta?.favicon ? `<div><strong class="text-white">Favicon:</strong> ${data.meta.favicon}</div>` : ''}
+          ${data.screenshot ? `<div class="mt-4"><strong class="text-white">Vista previa:</strong>
+            <img src="data:image/png;base64,${data.screenshot}" alt="Screenshot" class="mt-2 rounded-lg border border-white/10 max-w-full w-[400px]" />
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    // ── Flujo principal ──────────────────────────────────────────
+    (async () => {
+      const stored = sessionStorage.getItem('extractedData');
+      const urlParam = new URLSearchParams(window.location.search).get('url');
+
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          if (data?.url) {
+            const score = (await import('../services/scoring.ts')).calculateScore(data);
+            renderDashboard(data, score);
+            return;
+          }
+        } catch {
+          // stored corrupto, intentar re-extraer
+        }
+      }
+
+      if (urlParam) {
+        const root = document.getElementById('analysis-root');
+        if (root) root.innerHTML = '<div class="flex flex-col items-center justify-center gap-4 mt-20"><div class="w-12 h-12 rounded-full border-4 border-t-transparent border-indigo-500 animate-spin"></div><p class="text-gray-400">Recuperando datos...</p></div>';
+
+        try {
+          const res = await fetch(`${basePath}/api/extract`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: urlParam }),
+          });
+          const result = await res.json();
+          if (!res.ok || !result.success) throw new Error(result.error);
+
+          const data = result.data;
+          sessionStorage.setItem('extractedData', JSON.stringify(data));
+          const score = (await import('../services/scoring.ts')).calculateScore(data);
+          renderDashboard(data, score);
+        } catch (err: any) {
+          if (root) {
+            root.innerHTML = `
+              <div class="flex flex-col items-center justify-center gap-4 mt-20 text-center">
+                <p class="text-red-400 text-lg">Error al recuperar los datos</p>
+                <p class="text-gray-400 text-sm">${err.message || 'Error desconocido'}</p>
+                <a href="${basePath}/" class="mt-4 text-indigo-400 hover:text-indigo-300 transition">Volver al inicio</a>
+              </div>`;
+          }
+        }
+        return;
+      }
+
+      // Sin datos y sin URL → redirigir al inicio
+      window.location.href = basePath || '/';
+    })();
+  </script>
+</BaseLayout>
