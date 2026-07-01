@@ -207,4 +207,129 @@ describe('calculateScore', () => {
     );
     expect(result.overall).toBe(expected);
   });
+
+  describe('section messages content', () => {
+    it('hero: missing title', () => {
+      const result = calculateScore(mockData({ title: '', headings: [] }));
+      expect(result.sectionMessages.hero.message).toBe('Missing main title');
+    });
+
+    it('hero: title + score >= 70', () => {
+      const result = calculateScore(mockData({
+        title: 'Perfect title length for optimal SEO results here',
+        headings: [{ level: 1, text: 'H1' }, { level: 2, text: 'H2' }],
+      }));
+      expect(result.sectionMessages.hero.score).toBeGreaterThanOrEqual(70);
+      expect(result.sectionMessages.hero.message).toBe('Good value proposition');
+    });
+
+    it('hero: title + score < 70', () => {
+      const result = calculateScore(mockData({ title: 'Short', headings: [] }));
+      expect(result.sectionMessages.hero.score).toBeLessThan(70);
+      expect(result.sectionMessages.hero.message).toBe('Could be improved, optimize the title');
+    });
+
+    it('ctas: no CTAs', () => {
+      const result = calculateScore(mockData({ ctas: [] }));
+      expect(result.sectionMessages.ctas.message).toBe('No CTAs detected');
+    });
+
+    it('ctas: has CTAs + score >= 70', () => {
+      const result = calculateScore(mockData({
+        ctas: [
+          { text: 'A', href: '/a', type: 'button', tag: 'button' },
+          { text: 'B', href: '/b', type: 'link', tag: 'a' },
+        ],
+      }));
+      expect(result.sectionMessages.ctas.score).toBeGreaterThanOrEqual(70);
+      expect(result.sectionMessages.ctas.message).toBe('Effective and sufficient CTAs');
+    });
+
+    it('ctas: has CTAs + score < 70', () => {
+      const result = calculateScore(mockData({
+        ctas: [{ text: 'A', href: '/a', type: 'button', tag: 'button' }],
+      }));
+      expect(result.sectionMessages.ctas.score).toBeLessThan(70);
+      expect(result.sectionMessages.ctas.message).toBe('CTAs present but could be improved');
+    });
+
+    it('forms: no forms', () => {
+      const result = calculateScore(mockData({ forms: [] }));
+      expect(result.sectionMessages.forms.message).toBe('No capture form found');
+    });
+
+    it('forms: has forms', () => {
+      const result = calculateScore(mockData({
+        forms: [{ action: '/submit', method: 'post', inputs: [] }],
+      }));
+      expect(result.sectionMessages.forms.message).toBe('Capture form detected');
+    });
+
+    it('seo: missing title and description', () => {
+      const result = calculateScore(mockData({ title: '', description: '' }));
+      expect(result.sectionMessages.seo.message).toBe('Missing SEO metadata (title and description)');
+    });
+
+    it('seo: both present + score >= 70', () => {
+      const result = calculateScore(mockData({
+        title: 'Perfect title length for optimal SEO results here',
+        description: 'This description is long enough to be considered optimal for search engine result pages and user engagement.',
+      }));
+      expect(result.sectionMessages.seo.score).toBeGreaterThanOrEqual(70);
+      expect(result.sectionMessages.seo.message).toBe('Good on-page SEO');
+    });
+
+    it('seo: both present + score < 70', () => {
+      const result = calculateScore(mockData({ title: 'Short', description: 'Short' }));
+      expect(result.sectionMessages.seo.score).toBeLessThan(70);
+      expect(result.sectionMessages.seo.message).toBe('Improve SEO metadata');
+    });
+
+    it('accessibility: no headings', () => {
+      const result = calculateScore(mockData({ headings: [] }));
+      expect(result.sectionMessages.accessibility.message).toBe('Missing heading structure');
+    });
+
+    it('accessibility: headings + score >= 70', () => {
+      const result = calculateScore(mockData({
+        headings: [{ level: 1, text: 'A' }, { level: 2, text: 'B' }],
+      }));
+      expect(result.sectionMessages.accessibility.score).toBeGreaterThanOrEqual(70);
+      expect(result.sectionMessages.accessibility.message).toBe('Good accessibility structure');
+    });
+
+    it('accessibility: headings + score < 70', () => {
+      const result = calculateScore(mockData({
+        headings: [{ level: 1, text: 'A' }],
+        images: [],
+      }));
+      expect(result.sectionMessages.accessibility.score).toBeLessThan(70);
+      expect(result.sectionMessages.accessibility.message).toBe('Heading structure could be improved');
+    });
+
+    it('socialProof: trust signals via images (>= 2)', () => {
+      const result = calculateScore(mockData({
+        images: [{ src: 'https://ex.com/a.jpg', alt: 'A' }, { src: 'https://ex.com/b.jpg', alt: 'B' }],
+        links: [],
+      }));
+      expect(result.sectionMessages.socialProof.message).toBe('Trust signals detected');
+    });
+
+    it('socialProof: trust signals via many links (> 5)', () => {
+      const result = calculateScore(mockData({
+        images: [],
+        links: Array.from({ length: 6 }, (_, i) => ({ href: `/${i}`, text: `${i}` })),
+      }));
+      expect(result.sectionMessages.socialProof.message).toBe('Trust signals detected');
+    });
+
+    it('socialProof: not enough signals', () => {
+      const result = calculateScore(mockData({
+        images: [{ src: 'https://ex.com/a.jpg', alt: 'A' }],
+        links: [{ href: '/a', text: 'A' }, { href: '/b', text: 'B' }],
+      }));
+      expect(result.sectionMessages.socialProof.message).toBe('Add more social proof (images, testimonials)');
+    });
+  });
+
 });
