@@ -1,5 +1,21 @@
 import type { APIRoute } from 'astro';
 import { extractContent } from '../../services/extractor';
+import { calculateScore } from '../../services/scoring';
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+  });
+}
+
+export const OPTIONS: APIRoute = () => new Response(null, { status: 204, headers: CORS_HEADERS });
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -7,10 +23,7 @@ export const POST: APIRoute = async ({ request }) => {
     let { url } = body;
 
     if (!url || typeof url !== 'string') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'URL inválida o no proporcionada' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return json({ success: false, error: 'URL inválida o no proporcionada' }, 400);
     }
 
     url = url.trim();
@@ -22,26 +35,21 @@ export const POST: APIRoute = async ({ request }) => {
     try {
       new URL(url);
     } catch {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Formato de URL inválido' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return json({ success: false, error: 'Formato de URL inválido' }, 400);
     }
 
-    const extractedData = await extractContent(url);
+    const data = await extractContent(url);
+    const score = calculateScore(data);
 
-    return new Response(
-      JSON.stringify({ success: true, data: extractedData }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return json({ success: true, data, score });
   } catch (error) {
     console.error('Error en /api/extract:', error);
-    return new Response(
-      JSON.stringify({
+    return json(
+      {
         success: false,
         error: error instanceof Error ? error.message : 'Error interno del servidor',
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      },
+      500
     );
   }
 };
