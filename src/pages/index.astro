@@ -373,6 +373,9 @@ const features = [
        LÓGICA DEL CLIENTE (TypeScript)
   ════════════════════════════════════════════════════════════════ -->
   <script>
+    // ── Base path para API ──────────────────────────────────────
+    const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
+
     // ── Referencias al DOM ────────────────────────────────────────
     const urlInput   = document.getElementById('url-input')    as HTMLInputElement;
     const analyzeBtn = document.getElementById('analyze-btn')  as HTMLButtonElement;
@@ -381,6 +384,7 @@ const features = [
     const toastMsg   = document.getElementById('toast-message') as HTMLSpanElement;
     const toastIcon  = document.getElementById('toast-icon')   as HTMLSpanElement;
     const ctaBtn     = document.querySelector('.cta-scroll')   as HTMLButtonElement;
+    const btnOriginalHtml = analyzeBtn.innerHTML;
 
     // ── Temporizador del toast (para cancelar si se vuelve a mostrar) ─
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -442,9 +446,9 @@ const features = [
 
     // ── Lógica principal de análisis ──────────────────────────────
     /**
-     * Valida la URL y, si es correcta, dispara el análisis.
+     * Valida la URL y, si es correcta, dispara el análisis vía API.
      */
-    function handleAnalyze(): void {
+    async function handleAnalyze(): Promise<void> {
       const url = urlInput.value.trim();
 
       if (!url) {
@@ -459,12 +463,36 @@ const features = [
         return;
       }
 
-      // URL válida → enviar a análisis
-      console.log('URL recibida:', url);
+      // ── Estado de carga ─────────────────────────────────────
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = 'Analizando…';
       showToast(`Analizando ${url}…`, 'success');
 
-      // TODO: aquí se llamará a la API de análisis
-      // window.location.href = `/analysis?url=${encodeURIComponent(url)}`;
+      try {
+        const response = await fetch(`${basePath}/api/extract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Error al analizar la página');
+        }
+
+        const d = result.data;
+        sessionStorage.setItem('extractedData', JSON.stringify(d));
+        window.location.href = `${basePath}/analyze?url=${encodeURIComponent(url)}`;
+      } catch (error) {
+        showToast(
+          `❌ Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+          'error'
+        );
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = btnOriginalHtml;
+      }
     }
 
     // ── Eventos ───────────────────────────────────────────────────
