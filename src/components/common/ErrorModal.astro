@@ -1,0 +1,74 @@
+<div
+  id="error-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="error-modal-title"
+  class="fixed inset-0 z-200 hidden items-center justify-center"
+>
+  <div id="error-modal-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+  <div class="relative mx-4 max-w-md rounded-2xl border border-white/10 bg-[#0f0f0f] p-8 shadow-2xl shadow-black/60">
+    <div class="flex flex-col items-center text-center">
+      <div class="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+
+      <h2 id="error-modal-title" class="mb-2 text-lg font-semibold text-white">
+        Tiempo de espera agotado
+      </h2>
+
+      <p class="mb-6 text-sm leading-relaxed text-gray-400">
+        Esta es una versión MVP construida con servicios gratuitos.
+        Algunas páginas con mucho contenido dinámico o muy pesadas
+        pueden superar el tiempo de carga disponible.
+      </p>
+
+      <p class="mb-6 text-sm leading-relaxed text-gray-400">
+        Te sugerimos probar con una página más simple para ver el
+        análisis en funcionamiento. Ejemplos ideales: sitios
+        informativos, landing pages ligeras o blogs.
+      </p>
+
+      <p class="mb-6 text-xs text-gray-500 italic">
+        Gracias por tu comprensión.
+      </p>
+
+      <button
+        id="error-modal-btn"
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-indigo-500/20 transition-all duration-200 hover:bg-indigo-500 active:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-transparent"
+      >
+        Aceptar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const modal = document.getElementById('error-modal') as HTMLDivElement;
+  const btn = document.getElementById('error-modal-btn') as HTMLButtonElement;
+  const backdrop = document.getElementById('error-modal-backdrop') as HTMLDivElement;
+
+  function closeModal() {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function showErrorModal() {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  btn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  (window as any).showErrorModal = showErrorModal;
+</script>

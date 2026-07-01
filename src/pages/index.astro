@@ -7,6 +7,7 @@ import BaseLayout from '../components/layout/BaseLayout.astro';
 import Button from '../components/common/Button.astro';
 import Card from '../components/common/Card.astro';
 import Input from '../components/common/Input.astro';
+import ErrorModal from '../components/common/ErrorModal.astro';
 
 // ── Íconos SVG inline ─────────────────────────────────────────────────────────
 
@@ -349,6 +350,8 @@ const features = [
     </div>
   </footer>
 
+  <ErrorModal />
+
   <!-- ══════════════════════════════════════════════════════════════
        TOAST DE VALIDACIÓN
   ════════════════════════════════════════════════════════════════ -->
@@ -485,10 +488,12 @@ const features = [
         sessionStorage.setItem('extractionResult', JSON.stringify({ data: result.data, score: result.score }));
         window.location.href = `${basePath}/analyze?url=${encodeURIComponent(url)}`;
       } catch (error) {
-        showToast(
-          `❌ Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-          'error'
-        );
+        const msg = error instanceof Error ? error.message : '';
+        if (/timeout/i.test(msg)) {
+          (window as any).showErrorModal?.();
+        } else {
+          showToast(`❌ Error: ${msg || 'Error desconocido'}`, 'error');
+        }
       } finally {
         analyzeBtn.disabled = false;
         analyzeBtn.innerHTML = btnOriginalHtml;
