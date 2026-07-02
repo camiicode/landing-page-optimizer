@@ -29,11 +29,11 @@ Consult these guides before working on related tasks:
 - **API base URL**: `https://lpo-backend.onrender.com`
 - **Extraction**: Playwright Chromium (headless) via `src/services/extractor.ts`
 - **Scoring**: Server-side via `src/services/scoring.ts`, returned in API response as `{ success, data, score }`
-- **AI Analysis**: Gemini 2.0 Flash via `src/services/llm-client.ts` → `analyzer.ts` → `POST /api/analyze` returns `{ success, analysis }`
-- **Custom API Key**: Users can paste their own Gemini API key in the AI card when quota is exhausted; key is stored in `sessionStorage` and sent as `apiKey` field in `POST /api/analyze` body
+- **AI Analysis**: Groq (LLaMA 3.3 70B) by default via `src/services/llm-client.ts` → `analyzer.ts` → `POST /api/analyze` returns `{ success, analysis }`. Falls back to Gemini 2.0 Flash when user provides a custom API key.
+- **Custom API Key**: Users can paste their own Gemini API key in the AI card; key is stored in `sessionStorage` and sent as `apiKey` field in `POST /api/analyze` body. When no `apiKey` is provided, Groq is used automatically.
 - **Two-phase frontend**: Score renders immediately from sessionStorage → AI analysis fetched in background and revealed with fade-in animation
 - **Static build**: `astro build --config astro.config.static.mjs`
-- **Env vars**: `GEMINI_API_KEY` loaded from `.env` via `process.env` (server-only)
+- **Env vars**: `GROQ_API_KEY` (required) and `GEMINI_API_KEY` (optional) loaded from `.env` via `process.env` (server-only)
 
 ### Key Behaviors
 - `page.goto` uses `domcontentloaded` (25s) with `load` fallback (10s) via `.catch()`
@@ -46,12 +46,13 @@ Consult these guides before working on related tasks:
 - If default API quota exhausted, a card with input field lets users paste their own Gemini API key
 - If custom key also fails, a "key failed" card with retry input is shown
 - All AI service files gracefully handle missing API key (return `null`)
-- `llm-client.ts` accepts optional `apiKey` parameter; if provided, creates a fresh `GoogleGenerativeAI` instance, otherwise reuses the module-level instance from env
+- `llm-client.ts` has two providers: `analyzeWithGroq()` (default, via fetch) and `analyzeWithGemini()` (user API key, via `@google/generative-ai`)
+- `analyzer.ts` decides provider based on `apiKey` param: Groq when no key, Gemini when key provided
 
 ### Service Dependencies
-- `llm-client.ts` → `@google/generative-ai`
+- `llm-client.ts` → `@google/generative-ai` (Gemini only), `fetch` (Groq)
 - `prompts.ts` → `extractor.ts` (types only)
-- `analyzer.ts` → `llm-client.ts`, `prompts.ts`
+- `analyzer.ts` → `llm-client.ts` (Groq + Gemini), `prompts.ts`
 - `api/analyze.ts` → `analyzer.ts`, `extractor.ts`
 - `analyze.astro` → `api/analyze` (sends `{ url, data, apiKey? }`)
 
@@ -100,5 +101,18 @@ Consult these guides before working on related tasks:
 8. Added 4 test files (scoring, llm-client, prompts, analyzer) with 74 total tests passing
 9. Updated AGENTS.md with new architecture docs
 
-**Pending for next session:**
-- No pending tasks — user may add new features
+### Session 2026-07-02 — Groq Integration
+
+**What was done:**
+1. Added `analyzeWithGroq()` to `llm-client.ts` — uses Groq API (LLaMA 3.3 70B) via OpenAI-compatible `fetch`
+2. Changed `analyzer.ts` to use Groq by default, Gemini only when user provides `apiKey`
+3. Updated `api/analyze.ts` logging to reflect both providers
+4. Updated `.env.example` with `GROQ_API_KEY` as primary var
+5. Added 9 new tests (83 total): Groq client tests (5) + Groq analyzer tests (4)
+6. Changed `index.astro` badge from "GPT-4, Claude & Gemini" to "AI-powered analysis"
+7. Updated README, AGENTS.md, and CHANGELOG
+
+**Provider logic:**
+- No `apiKey` → `analyzeWithGroq()` (free, Llama 3.3 70B via Groq)
+- With `apiKey` → `analyzeWithGemini()` (user's own Gemini key)
+- Both return null gracefully → frontend shows API key card

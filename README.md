@@ -1,21 +1,21 @@
 # LPO — Landing Page Optimizer
 
-AI-powered landing page analysis platform that extracts, scores, and provides actionable recommendations to improve conversion rates.
+AI-powered landing page analysis platform that extracts, scores, and provides actionable AI recommendations to improve conversion rates.
 
 ## Architecture
 
 ```
-┌─────────────────────┐       ┌──────────────────────┐
-│   GitHub Pages      │       │   Render (Free Tier)  │
-│   (Static Frontend) │       │   (Node Server)       │
-│                     │  API  │                       │
-│  index.html         │──────▶│  /api/extract         │
-│  analyze/index.html │       │  Playwright Chromium  │
-└─────────────────────┘       └──────────────────────┘
+┌─────────────────────┐       ┌──────────────────────────┐
+│   GitHub Pages      │       │   Render (Free Tier)      │
+│   (Static Frontend) │       │   (Node Server)           │
+│                     │  API  │                           │
+│  index.html         │──────▶│  /api/extract             │
+│  analyze/index.html │       │  /api/analyze (Groq + AI) │
+└─────────────────────┘       └──────────────────────────┘
 ```
 
 - **Frontend**: Static site hosted on GitHub Pages
-- **Backend**: Node server with Playwright for page extraction + scoring engine
+- **Backend**: Node server with Playwright for page extraction + scoring engine + AI analysis (Groq by default, Gemini optional)
 
 ## Stack
 
@@ -27,6 +27,8 @@ AI-powered landing page analysis platform that extracts, scores, and provides ac
 | **Playwright** | ^1.61.1 |
 | **Node** | >=22.12.0 |
 | **Vitest** | ^4.1.9 |
+| **Groq (LLaMA 3.3)** | Default AI provider |
+| **Gemini 2.0 Flash** | Optional (user API key) |
 
 ## Project Structure
 
@@ -38,18 +40,31 @@ src/
 │   └── analysis/      # ScoreGauge, SectionCard
 ├── pages/
 │   ├── index.astro    # Landing page with URL input
-│   ├── analyze.astro  # Results dashboard
+│   ├── analyze.astro  # Results dashboard + AI recommendations
 │   └── api/
-│       └── extract.ts # POST endpoint (scoring + CORS)
+│       ├── extract.ts   # POST endpoint (scoring + CORS)
+│       └── analyze.ts   # POST endpoint (AI analysis)
 ├── services/
-│   ├── extractor.ts   # Playwright page extraction
-│   └── scoring.ts     # Scoring engine (0-100)
-├── components/
+│   ├── extractor.ts     # Playwright page extraction
+│   ├── scoring.ts       # Scoring engine (0-100)
+│   ├── llm-client.ts    # Groq + Gemini AI clients
+│   ├── analyzer.ts      # AI analysis orchestrator
+│   ├── prompts.ts       # CRO prompt templates
+│   └── __tests__/       # Vitest unit tests
+├── types/
+│   └── analysis.ts      # AI analysis type definitions
 ├── styles/
-│   └── global.css     # Tailwind global styles
-└── services/
-    └── __tests__/     # Vitest unit tests
+│   └── global.css       # Tailwind global styles
+└── layouts/
+    └── Layout.astro     # Base HTML layout
 ```
+
+## Features
+
+- **Page extraction**: Playwright Chromium extracts headings, CTAs, forms, images, links, metadata, and more
+- **Scoring engine**: 0-100 score across 6 categories (hero, CTAs, forms, SEO, accessibility, social proof)
+- **AI analysis**: Conversion recommendations powered by LLaMA 3.3 70B via Groq (free, no signup required)
+- **Custom API key**: Users can optionally use their own Gemini API key for analysis
 
 ## Commands
 
@@ -63,13 +78,20 @@ src/
 | `pnpm test:watch` | Run tests in watch mode |
 | `pnpm preview` | Preview production build |
 
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | API key for Groq (default AI provider) |
+| `GEMINI_API_KEY` | No | API key for Gemini (user-provided fallback) |
+
 ## Testing
 
 ```bash
 pnpm test
 ```
 
-Tests cover the scoring engine (10 unit tests) including edge cases for title/description length boundaries, heading/CTA/image/form scoring tiers, and overall score calculation.
+Tests cover the scoring engine, AI analysis flow, prompt building, and LLM client (83+ unit tests).
 
 ## Deployment
 

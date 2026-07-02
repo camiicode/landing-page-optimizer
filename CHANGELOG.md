@@ -3,26 +3,21 @@
 ## [Unreleased]
 
 ### Added
-- Unit testing with Vitest (10 tests for scoring engine)
-- ErrorModal component with friendly timeout explanation
-- Loading state with spinner animation during page analysis
-- Static build config for GitHub Pages deployment (`astro.config.static.mjs`)
-- CORS headers on API endpoint to allow cross-origin requests
-- Scoring data included in API response
+- Groq (LLaMA 3.3 70B) as default AI provider — free, no user signup required
+- `analyzeWithGroq()` client using OpenAI-compatible fetch API
+- Fallback logic: Groq by default, Gemini when user provides custom API key
+- 9 new unit tests for Groq integration (83 total)
+- Environment variable `GROQ_API_KEY` in `.env` and `.env.example`
 
 ### Changed
-- Translated all UI text from Spanish to English
-- Frontend now calls Render API directly (`https://lpo-backend.onrender.com/api/extract`)
-- Score computed server-side and returned with extraction data
-- Removed client-side dynamic import of scoring module
-- `page.goto` timeout increased from 15s to 25s with `load` fallback (10s)
-- GitHub Actions workflow uses `build:static` instead of server build
-- Updated meta description and title to English
-- Changed `html lang` from `es` to `en`
+- AI analysis now works out of the box with no API key needed
+- `analyzer.ts` selects provider based on `apiKey` parameter
+- Landing page badge updated to "Now with AI-powered analysis"
+- README updated with new architecture, env vars, and project structure
+- AGENTS.md updated with Groq provider details and session log
 
-### Removed
-- "Documentation" link from navigation
-- Client-side scoring calculation (moved to API)
+### Fixed
+- AI analysis was previously blocked without a Gemini API key with $10 minimum funding
 
 ## [0.0.1] - 2026-06-30
 
