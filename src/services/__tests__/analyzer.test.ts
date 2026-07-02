@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ExtractedData } from '../extractor';
 
 const mockAnalyzeWithGemini = vi.fn();
+const mockAnalyzeWithGroq = vi.fn();
 
 vi.mock('../llm-client', () => ({
   analyzeWithGemini: mockAnalyzeWithGemini,
+  analyzeWithGroq: mockAnalyzeWithGroq,
 }));
 
 function mockData(overrides: Partial<ExtractedData> = {}): ExtractedData {
@@ -31,16 +33,19 @@ function mockData(overrides: Partial<ExtractedData> = {}): ExtractedData {
 describe('analyzeWithAI', () => {
   beforeEach(() => {
     mockAnalyzeWithGemini.mockReset();
+    mockAnalyzeWithGroq.mockReset();
   });
 
-  it('returns null when Gemini returns null', async () => {
-    mockAnalyzeWithGemini.mockResolvedValue(null);
+  // ── Groq (default, sin apiKey) ─────────────────────────────────
+
+  it('returns null when Groq returns null', async () => {
+    mockAnalyzeWithGroq.mockResolvedValue(null);
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
     expect(result).toBeNull();
   });
 
-  it('parses a valid JSON response from Gemini', async () => {
+  it('parses a valid JSON response from Groq', async () => {
     const validResponse = JSON.stringify({
       summary: 'Good page with room for improvement in CTAs.',
       overallVerdict: 'good',
@@ -57,7 +62,7 @@ describe('analyzeWithAI', () => {
         ctaText: ['Get Started Free', 'See Pricing'],
       },
     });
-    mockAnalyzeWithGemini.mockResolvedValue(validResponse);
+    mockAnalyzeWithGroq.mockResolvedValue(validResponse);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -71,9 +76,9 @@ describe('analyzeWithAI', () => {
     expect(result!.copySuggestions.ctaText).toHaveLength(2);
   });
 
-  it('strips markdown code fences from Gemini response', async () => {
+  it('strips markdown code fences from response', async () => {
     const withFences = '```json\n{"summary":"OK","overallVerdict":"good","recommendations":[],"copySuggestions":{}}\n```';
-    mockAnalyzeWithGemini.mockResolvedValue(withFences);
+    mockAnalyzeWithGroq.mockResolvedValue(withFences);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -83,7 +88,7 @@ describe('analyzeWithAI', () => {
 
   it('strips code fences without language tag', async () => {
     const withFences = '```\n{"summary":"OK","overallVerdict":"good","recommendations":[],"copySuggestions":{}}\n```';
-    mockAnalyzeWithGemini.mockResolvedValue(withFences);
+    mockAnalyzeWithGroq.mockResolvedValue(withFences);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -92,7 +97,7 @@ describe('analyzeWithAI', () => {
   });
 
   it('returns null when JSON is invalid', async () => {
-    mockAnalyzeWithGemini.mockResolvedValue('This is not JSON');
+    mockAnalyzeWithGroq.mockResolvedValue('This is not JSON');
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -103,15 +108,15 @@ describe('analyzeWithAI', () => {
     const missingFields = JSON.stringify({
       summary: 'Only summary present',
     });
-    mockAnalyzeWithGemini.mockResolvedValue(missingFields);
+    mockAnalyzeWithGroq.mockResolvedValue(missingFields);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
     expect(result).toBeNull();
   });
 
-  it('returns null when Gemini API throws an error', async () => {
-    mockAnalyzeWithGemini.mockRejectedValue(new Error('API quota exceeded'));
+  it('returns null when provider throws an error', async () => {
+    mockAnalyzeWithGroq.mockRejectedValue(new Error('API quota exceeded'));
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -133,7 +138,7 @@ describe('analyzeWithAI', () => {
       recommendations: recs,
       copySuggestions: {},
     });
-    mockAnalyzeWithGemini.mockResolvedValue(response);
+    mockAnalyzeWithGroq.mockResolvedValue(response);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -157,7 +162,7 @@ describe('analyzeWithAI', () => {
       recommendations: recs,
       copySuggestions: {},
     });
-    mockAnalyzeWithGemini.mockResolvedValue(response);
+    mockAnalyzeWithGroq.mockResolvedValue(response);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -172,7 +177,7 @@ describe('analyzeWithAI', () => {
       recommendations: [],
       copySuggestions: {},
     });
-    mockAnalyzeWithGemini.mockResolvedValue(response);
+    mockAnalyzeWithGroq.mockResolvedValue(response);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
@@ -189,7 +194,7 @@ describe('analyzeWithAI', () => {
         recommendations: [],
         copySuggestions: {},
       });
-      mockAnalyzeWithGemini.mockResolvedValue(response);
+      mockAnalyzeWithGroq.mockResolvedValue(response);
       const { analyzeWithAI } = await import('../analyzer');
       const result = await analyzeWithAI(mockData());
       expect(result!.overallVerdict).toBe(verdict);
@@ -203,12 +208,14 @@ describe('analyzeWithAI', () => {
       recommendations: 'not an array',
       copySuggestions: {},
     });
-    mockAnalyzeWithGemini.mockResolvedValue(badResponse);
+    mockAnalyzeWithGroq.mockResolvedValue(badResponse);
 
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
     expect(result).toBeNull();
   });
+
+  // ── Gemini (cuando se proporciona apiKey) ──────────────────────
 
   it('propagates custom apiKey to analyzeWithGemini', async () => {
     mockAnalyzeWithGemini.mockResolvedValue(JSON.stringify({
@@ -228,9 +235,9 @@ describe('analyzeWithAI', () => {
     );
   });
 
-  it('works without apiKey parameter (backwards compatible)', async () => {
-    mockAnalyzeWithGemini.mockResolvedValue(JSON.stringify({
-      summary: 'Default key test.',
+  it('uses Groq when no apiKey is provided', async () => {
+    mockAnalyzeWithGroq.mockResolvedValue(JSON.stringify({
+      summary: 'Default Groq test.',
       overallVerdict: 'good',
       recommendations: [],
       copySuggestions: {},
@@ -239,10 +246,10 @@ describe('analyzeWithAI', () => {
     const { analyzeWithAI } = await import('../analyzer');
     const result = await analyzeWithAI(mockData());
     expect(result).not.toBeNull();
-    expect(mockAnalyzeWithGemini).toHaveBeenCalledWith(
+    expect(mockAnalyzeWithGroq).toHaveBeenCalledWith(
       expect.any(String),
-      expect.any(String),
-      undefined
+      expect.any(String)
     );
+    expect(mockAnalyzeWithGemini).not.toHaveBeenCalled();
   });
 });

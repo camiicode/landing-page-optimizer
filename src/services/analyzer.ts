@@ -1,12 +1,14 @@
 import type { ExtractedData } from './extractor';
 import type { AIAnalysis } from '../types/analysis';
-import { analyzeWithGemini } from './llm-client';
+import { analyzeWithGemini, analyzeWithGroq } from './llm-client';
 import { LANDING_PAGE_ANALYSIS_SYSTEM_PROMPT, buildAnalysisPrompt } from './prompts';
 
 export async function analyzeWithAI(data: ExtractedData, apiKey?: string): Promise<AIAnalysis | null> {
   try {
     const prompt = buildAnalysisPrompt(data);
-    const response = await analyzeWithGemini(LANDING_PAGE_ANALYSIS_SYSTEM_PROMPT, prompt, apiKey);
+    const response = apiKey
+      ? await analyzeWithGemini(LANDING_PAGE_ANALYSIS_SYSTEM_PROMPT, prompt, apiKey)
+      : await analyzeWithGroq(LANDING_PAGE_ANALYSIS_SYSTEM_PROMPT, prompt);
 
     if (!response) return null;
 

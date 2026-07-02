@@ -20,7 +20,7 @@ export const OPTIONS: APIRoute = () => new Response(null, { status: 204, headers
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    console.log('[analyze] GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY, '| import.meta.env:', !!(import.meta as any).env?.GEMINI_API_KEY);
+    console.log('[analyze] GROQ_API_KEY present:', !!process.env.GROQ_API_KEY, '| GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
 
     const body = await request.json();
     const { url, data, apiKey } = body as { url?: string; data?: ExtractedData; apiKey?: string };
