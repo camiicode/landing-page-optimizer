@@ -131,7 +131,7 @@ describe('llm-client', () => {
       expect(url).toBe('https://api.groq.com/openai/v1/chat/completions');
       expect(opts.method).toBe('POST');
       expect(opts.headers['Authorization']).toBe('Bearer gsk_test-key');
-      expect(opts.body).toContain('"model":"llama-3.3-70b-versatile"');
+      expect(opts.body).toContain('"model":"llama-3.1-8b-instant"');
       expect(opts.body).toContain('System prompt');
       expect(opts.body).toContain('User prompt');
     });

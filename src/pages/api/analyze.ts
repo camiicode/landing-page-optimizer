@@ -34,6 +34,13 @@ export const POST: APIRoute = async ({ request }) => {
     const analysis = await analyzeWithAI(pageData, apiKey);
     console.log('[analyze] analysis result:', analysis ? 'present' : 'null');
 
+    if (!analysis) {
+      const error = !process.env.GROQ_API_KEY
+        ? 'GROQ_API_KEY is not configured on the server. Add it in Render Dashboard → Environment.'
+        : 'Groq API error — check quota (1000 req/day for llama-3.3-70b) or server logs.';
+      return json({ success: true, analysis: null, error });
+    }
+
     return json({ success: true, analysis });
   } catch (error) {
     console.error('Error in /api/analyze:', error);
