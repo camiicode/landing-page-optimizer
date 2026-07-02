@@ -388,7 +388,9 @@ const features = [
   <script>
     // ── Rutas ───────────────────────────────────────────────────
     const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
-    const RENDER_API = 'https://lpo-backend.onrender.com';
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? window.location.origin
+      : 'https://lpo-backend.onrender.com';
 
     // ── Referencias al DOM ────────────────────────────────────────
     const urlInput        = document.getElementById('url-input')        as HTMLInputElement;
@@ -491,7 +493,7 @@ const features = [
       showToast(`Analyzing ${url}\u2026`, 'success');
 
       try {
-        const response = await fetch(`${RENDER_API}/api/extract`, {
+        const response = await fetch(`${API_BASE}/api/extract`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url }),

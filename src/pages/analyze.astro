@@ -10,10 +10,15 @@ const urlParam = Astro.url.searchParams.get('url');
     <Loading text="Preparing results..." size="lg" />
   </div>
 
+  <!-- AI Recommendations section (hidden until loaded) -->
+  <div id="ai-recommendations" class="max-w-6xl mx-auto px-4 pb-16 transition-all duration-700 opacity-0 translate-y-4"></div>
+
   <script>
     // ── Helpers ──────────────────────────────────────────────────
     const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
-    const RENDER_API = 'https://lpo-backend.onrender.com';
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? window.location.origin
+      : 'https://lpo-backend.onrender.com';
 
     function clamp(n: number) { return Math.min(100, Math.max(0, n)); }
 
@@ -43,6 +48,116 @@ const urlParam = Astro.url.searchParams.get('url');
             <span class="text-[10px] text-gray-400 uppercase tracking-wider">Puntaje</span>
           </div>
         </div>`;
+    }
+
+    function priorityBadge(p: string) {
+      if (p === 'high') return '<span class="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full font-medium">High</span>';
+      if (p === 'medium') return '<span class="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-medium">Medium</span>';
+      return '<span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-medium">Low</span>';
+    }
+
+    function renderNoKeyCard() {
+      return `
+        <div class="mt-12 mb-8 border border-indigo-500/20 bg-indigo-500/5 rounded-2xl p-8 text-center">
+          <div class="flex justify-center mb-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+              </svg>
+            </div>
+          </div>
+          <h2 class="text-lg font-semibold text-white mb-2">AI Recommendations</h2>
+          <p class="text-sm text-gray-400 max-w-md mx-auto mb-4">
+            The demo AI quota has been reached. Use your own API key to get AI-powered conversion recommendations.
+          </p>
+          <div class="flex items-center gap-2 max-w-sm mx-auto mb-3">
+            <input id="ai-key-input" type="text" placeholder="Paste your Gemini API key"
+              class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50" />
+            <button id="ai-key-submit"
+              class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2 transition">
+              Go
+            </button>
+          </div>
+          <a href="https://aistudio.google.com/apikey" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 underline">
+            Get a free key →
+          </a>
+          <p class="text-xs text-gray-500 mt-3">⚡ Session only — not stored permanently</p>
+        </div>`;
+    }
+
+    function renderKeyFailedCard() {
+      return `
+        <div class="mt-12 mb-8 border border-yellow-500/20 bg-yellow-500/5 rounded-2xl p-8 text-center">
+          <div class="flex justify-center mb-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-500/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+          </div>
+          <h2 class="text-lg font-semibold text-white mb-2">API Key Quota Exceeded</h2>
+          <p class="text-sm text-gray-400 max-w-md mx-auto mb-4">
+            The API key you provided has also reached its quota. Try again later or use a different key.
+          </p>
+          <div class="flex items-center gap-2 max-w-sm mx-auto mb-3">
+            <input id="ai-key-input" type="text" placeholder="Paste a different Gemini API key"
+              class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50" />
+            <button id="ai-key-submit"
+              class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg px-4 py-2 transition">
+              Retry
+            </button>
+          </div>
+          <a href="https://aistudio.google.com/apikey" target="_blank" class="text-xs text-indigo-400 hover:text-indigo-300 underline">
+            Get a free key →
+          </a>
+        </div>`;
+    }
+
+    function renderAIRecommendations(analysis: any) {
+      if (!analysis || !analysis.recommendations) return '';
+
+      const recs = analysis.recommendations.map((r: any) => `
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <span class="text-xs font-medium uppercase tracking-wider text-indigo-400">${r.section}</span>
+            ${priorityBadge(r.priority)}
+          </div>
+          <p class="text-sm text-gray-300 mb-1"><strong class="text-white">Issue:</strong> ${r.issue}</p>
+          <p class="text-sm text-gray-300"><strong class="text-indigo-300">Suggestion:</strong> ${r.suggestion}</p>
+        </div>
+      `).join('');
+
+      const copyHtml = analysis.copySuggestions
+        ? `
+        <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h3 class="font-medium text-white mb-3">Copy suggestions</h3>
+          ${analysis.copySuggestions.headline ? `<div class="mb-2"><span class="text-xs text-gray-400 uppercase tracking-wider">Headline</span><p class="text-sm text-gray-200 mt-0.5">${analysis.copySuggestions.headline}</p></div>` : ''}
+          ${analysis.copySuggestions.subheadline ? `<div class="mb-2"><span class="text-xs text-gray-400 uppercase tracking-wider">Subheadline</span><p class="text-sm text-gray-200 mt-0.5">${analysis.copySuggestions.subheadline}</p></div>` : ''}
+          ${analysis.copySuggestions.ctaText?.length ? `
+            <div><span class="text-xs text-gray-400 uppercase tracking-wider">CTA text</span>
+            ${analysis.copySuggestions.ctaText.map((t: string) => `<p class="text-sm text-indigo-300 mt-0.5">→ "${t}"</p>`).join('')}
+            </div>
+          ` : ''}
+        </div>`
+        : '';
+
+      const verdictColor =
+        analysis.overallVerdict === 'excellent' ? 'text-green-400' :
+        analysis.overallVerdict === 'good' ? 'text-blue-400' :
+        analysis.overallVerdict === 'needs_improvement' ? 'text-yellow-400' : 'text-red-400';
+
+      return `
+        <div class="mb-6 flex items-center gap-3">
+          <h2 class="text-xl font-semibold text-white">AI Recommendations</h2>
+          <span class="text-xs ${verdictColor} capitalize">${analysis.overallVerdict?.replace(/_/g, ' ')}</span>
+        </div>
+        <p class="text-sm text-gray-400 mb-6">${analysis.summary}</p>
+        <div class="grid md:grid-cols-2 gap-4 mb-8">
+          ${recs}
+        </div>
+        ${copyHtml}
+      `;
     }
 
     function sectionCard(title: string, score: number, message?: string) {
@@ -126,6 +241,56 @@ const urlParam = Astro.url.searchParams.get('url');
       `;
     }
 
+    // ── Background AI analysis ───────────────────────────────────
+    async function fetchAIAnalysis(data: any, customKey?: string) {
+      const aiSection = document.getElementById('ai-recommendations');
+      if (!aiSection) return;
+
+      // Reveal the section so spinner is visible
+      requestAnimationFrame(() => {
+        aiSection.classList.remove('opacity-0', 'translate-y-4');
+      });
+
+      aiSection.innerHTML = customKey
+        ? '<div class="flex items-center justify-center gap-3 py-8"><svg aria-hidden="true" class="w-6 h-6 text-white/15 animate-[spin_2s_linear_infinite] fill-indigo-500" viewBox="0 0 100 101" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/></svg><span class="text-sm text-gray-400">Analyzing with your API key...</span></div>'
+        : '<div class="flex items-center justify-center gap-3 py-8"><svg aria-hidden="true" class="w-6 h-6 text-white/15 animate-[spin_2s_linear_infinite] fill-indigo-500" viewBox="0 0 100 101" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/></svg><span class="text-sm text-gray-400">Generating AI recommendations...</span></div>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: data.url, data, apiKey: customKey }),
+        });
+        const result = await res.json();
+
+        if (result.success && result.analysis) {
+          const analysis = result.analysis;
+
+          // Store with existing session data
+          try {
+            const stored = sessionStorage.getItem('extractionResult');
+            if (stored) {
+              const existing = JSON.parse(stored);
+              existing.analysis = analysis;
+              sessionStorage.setItem('extractionResult', JSON.stringify(existing));
+            }
+          } catch {}
+
+          aiSection.innerHTML = renderAIRecommendations(analysis);
+          requestAnimationFrame(() => {
+            aiSection.classList.remove('opacity-0', 'translate-y-4');
+          });
+          return;
+        }
+
+        // Analysis unavailable
+        aiSection.innerHTML = customKey ? renderKeyFailedCard() : renderNoKeyCard();
+      } catch (err) {
+        console.error('AI analysis background fetch failed:', err);
+        aiSection.innerHTML = customKey ? renderKeyFailedCard() : renderNoKeyCard();
+      }
+    }
+
     // ── Flujo principal ──────────────────────────────────────────
     (async () => {
       const stored = sessionStorage.getItem('extractionResult');
@@ -136,6 +301,7 @@ const urlParam = Astro.url.searchParams.get('url');
           const { data, score } = JSON.parse(stored);
           if (data?.url) {
             renderDashboard(data, score);
+            fetchAIAnalysis(data);
             return;
           }
         } catch {
@@ -148,7 +314,7 @@ const urlParam = Astro.url.searchParams.get('url');
         if (root) root.innerHTML = '<div class="flex flex-col items-center justify-center gap-4 mt-20"><div role="status"><svg aria-hidden="true" class="w-12 h-12 text-white/15 animate-[spin_2s_linear_infinite] fill-brand-accent" viewBox="0 0 100 101" xmlns="http://www.w3.org/2000/svg"><path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/><path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/></svg><span class="sr-only">Loading...</span></div><p class="text-gray-400">Fetching data...</p></div>';
 
         try {
-          const res = await fetch(`${RENDER_API}/api/extract`, {
+          const res = await fetch(`${API_BASE}/api/extract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: urlParam }),
@@ -159,6 +325,7 @@ const urlParam = Astro.url.searchParams.get('url');
           const { data, score } = result;
           sessionStorage.setItem('extractionResult', JSON.stringify({ data, score }));
           renderDashboard(data, score);
+          fetchAIAnalysis(data);
         } catch (err: any) {
           if (root) {
             root.innerHTML = `
@@ -175,5 +342,34 @@ const urlParam = Astro.url.searchParams.get('url');
       // Sin datos y sin URL → redirigir al inicio
       window.location.href = basePath || '/';
     })();
+
+    // ── Event delegation for AI key input ─────────────────────────
+    document.getElementById('ai-recommendations')?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('#ai-key-submit');
+      if (!btn) return;
+
+      const input = document.getElementById('ai-key-input') as HTMLInputElement;
+      const key = input?.value.trim();
+      if (!key) return;
+
+      sessionStorage.setItem('geminiApiKey', key);
+
+      const stored = sessionStorage.getItem('extractionResult');
+      if (stored) {
+        try {
+          const { data } = JSON.parse(stored);
+          if (data?.url) {
+            fetchAIAnalysis(data, key);
+            return;
+          }
+        } catch {}
+      }
+
+      // Fallback: reload from API if no session data
+      const urlParam = new URLSearchParams(window.location.search).get('url');
+      if (urlParam) {
+        window.location.href = `${basePath}/analyze?url=${encodeURIComponent(urlParam)}`;
+      }
+    });
   </script>
 </BaseLayout>
