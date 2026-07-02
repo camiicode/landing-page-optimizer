@@ -114,10 +114,24 @@ const urlParam = Astro.url.searchParams.get('url');
         </div>`;
     }
 
-    function renderAIRecommendations(analysis: any) {
+    function renderAIRecommendations(analysis: any, data?: any) {
       if (!analysis || !analysis.recommendations) return '';
 
-      const recs = analysis.recommendations.map((r: any) => `
+      const screenshots = data?.sectionScreenshots || {};
+
+      const recs = analysis.recommendations.map((r: any) => {
+        const section = r.section;
+
+        let screenshotImg = '';
+        if (section === 'hero' && screenshots.hero) {
+          screenshotImg = `<img src="data:image/png;base64,${screenshots.hero}" alt="Hero section" class="mt-3 rounded-lg border border-white/10 max-w-full" />`;
+        } else if (section === 'ctas' && screenshots.ctas?.length) {
+          screenshotImg = `<img src="data:image/png;base64,${screenshots.ctas[0]}" alt="CTA section" class="mt-3 rounded-lg border border-white/10 max-w-full" />`;
+        } else if (section === 'forms' && screenshots.forms?.length) {
+          screenshotImg = `<img src="data:image/png;base64,${screenshots.forms[0]}" alt="Form section" class="mt-3 rounded-lg border border-white/10 max-w-full" />`;
+        }
+
+        return `
         <div class="bg-white/5 border border-white/10 rounded-xl p-5">
           <div class="flex items-start justify-between gap-2 mb-2">
             <span class="text-xs font-medium uppercase tracking-wider text-indigo-400">${r.section}</span>
@@ -125,8 +139,9 @@ const urlParam = Astro.url.searchParams.get('url');
           </div>
           <p class="text-sm text-gray-300 mb-1"><strong class="text-white">Issue:</strong> ${r.issue}</p>
           <p class="text-sm text-gray-300"><strong class="text-indigo-300">Suggestion:</strong> ${r.suggestion}</p>
-        </div>
-      `).join('');
+          ${screenshotImg}
+        </div>`;
+      }).join('');
 
       const copyHtml = analysis.copySuggestions
         ? `
@@ -276,7 +291,7 @@ const urlParam = Astro.url.searchParams.get('url');
             }
           } catch {}
 
-          aiSection.innerHTML = renderAIRecommendations(analysis);
+          aiSection.innerHTML = renderAIRecommendations(analysis, data);
           requestAnimationFrame(() => {
             aiSection.classList.remove('opacity-0', 'translate-y-4');
           });

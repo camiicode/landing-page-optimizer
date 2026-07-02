@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 import { extractContent } from '../../services/extractor';
 import { calculateScore } from '../../services/scoring';
 
+const EXTRACT_TIMEOUT_MS = 120_000;
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -38,10 +40,14 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ success: false, error: 'Invalid URL format' }, 400);
     }
 
-    const data = await extractContent(url);
-    const score = calculateScore(data);
+    const result = await Promise.race([
+      extractContent(url).then(data => ({ data, score: calculateScore(data) })),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Extraction timed out after ${EXTRACT_TIMEOUT_MS / 1000}s`)), EXTRACT_TIMEOUT_MS)
+      ),
+    ]);
 
-    return json({ success: true, data, score });
+    return json({ success: true, ...result });
   } catch (error) {
     console.error('Error in /api/extract:', error);
     return json(
