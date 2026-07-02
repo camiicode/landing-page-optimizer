@@ -27,7 +27,7 @@ AI-powered landing page analysis platform that extracts, scores, and provides ac
 | **Playwright** | ^1.61.1 |
 | **Node** | >=22.12.0 |
 | **Vitest** | ^4.1.9 |
-| **Groq (LLaMA 3.3)** | Default AI provider |
+| **Groq (LLaMA 3.1 8B)** | Default AI provider (14,400 req/day) |
 | **Gemini 2.0 Flash** | Optional (user API key) |
 
 ## Project Structure
@@ -63,7 +63,7 @@ src/
 
 - **Page extraction**: Playwright Chromium extracts headings, CTAs, forms, images, links, metadata, and more
 - **Scoring engine**: 0-100 score across 6 categories (hero, CTAs, forms, SEO, accessibility, social proof)
-- **AI analysis**: Conversion recommendations powered by LLaMA 3.3 70B via Groq (free, no signup required)
+- **AI analysis**: Conversion recommendations powered by LLaMA 3.1 8B via Groq (free, 14,400 req/day)
 - **Custom API key**: Users can optionally use their own Gemini API key for analysis
 
 ## Commands

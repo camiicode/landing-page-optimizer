@@ -29,7 +29,7 @@ Consult these guides before working on related tasks:
 - **API base URL**: `https://lpo-backend.onrender.com`
 - **Extraction**: Playwright Chromium (headless) via `src/services/extractor.ts`
 - **Scoring**: Server-side via `src/services/scoring.ts`, returned in API response as `{ success, data, score }`
-- **AI Analysis**: Groq (LLaMA 3.3 70B) by default via `src/services/llm-client.ts` → `analyzer.ts` → `POST /api/analyze` returns `{ success, analysis }`. Falls back to Gemini 2.0 Flash when user provides a custom API key.
+- **AI Analysis**: Groq (LLaMA 3.1 8B, 14,400 req/day) by default via `src/services/llm-client.ts` → `analyzer.ts` → `POST /api/analyze` returns `{ success, analysis, error? }`. Falls back to Gemini 2.0 Flash when user provides a custom API key.
 - **Custom API Key**: Users can paste their own Gemini API key in the AI card; key is stored in `sessionStorage` and sent as `apiKey` field in `POST /api/analyze` body. When no `apiKey` is provided, Groq is used automatically.
 - **Two-phase frontend**: Score renders immediately from sessionStorage → AI analysis fetched in background and revealed with fade-in animation
 - **Static build**: `astro build --config astro.config.static.mjs`
@@ -113,6 +113,26 @@ Consult these guides before working on related tasks:
 7. Updated README, AGENTS.md, and CHANGELOG
 
 **Provider logic:**
-- No `apiKey` → `analyzeWithGroq()` (free, Llama 3.3 70B via Groq)
+- No `apiKey` → `analyzeWithGroq()` (free, Llama 3.1 8B via Groq, 14,400 req/day)
 - With `apiKey` → `analyzeWithGemini()` (user's own Gemini key)
-- Both return null gracefully → frontend shows API key card
+- Both return null gracefully → frontend shows API key card with specific error message
+
+### Session 2026-07-02 (Evening — MVP Release 0.1.0)
+
+**What was done:**
+1. **Section screenshots**: Added Playwright element-level screenshots for hero, CTAs, and forms during extraction; stored as `data.sectionScreenshots`
+2. **AI card display**: Screenshots now appear in recommendation cards for hero/CTA/form sections when AI analyzes them
+3. **Timeout bug**: Added `timeout: 2000` to all `el.screenshot()` calls — prevented 15min+ hangs on pages with many hidden CTA/form elements (Playwright's default 30s actionability check per element was the root cause)
+4. **Server timeout**: Added 120s global timeout to `/api/extract` via `Promise.race` so requests never hang indefinitely
+5. **Extraction logging**: Added `[extractor]` timing logs at each stage for debugging
+6. **Diagnostic errors**: When AI analysis fails, API now returns an `error` field specifying whether `GROQ_API_KEY` is missing or if it's a Groq API error (rate limit); frontend displays the specific message
+7. **Model switch**: Changed default from `llama-3.3-70b-versatile` (1,000 req/day) to `llama-3.1-8b-instant` (14,400 req/day) after hitting rate limits during testing
+8. **Doc updates**: Updated README, CHANGELOG v0.1.0, AGENTS.md; bumped package.json
+
+**Key files changed:**
+- `src/types/extraction.ts` — `SectionScreenshots` interface
+- `src/services/extractor.ts` — Element screenshots, logging, timeouts, CTA_SELECTORS refactor
+- `src/pages/api/extract.ts` — 120s timeout guard
+- `src/pages/api/analyze.ts` — Error message when analysis fails
+- `src/pages/analyze.astro` — Screenshots in AI cards, diagnostic error display
+- `src/services/llm-client.ts` — Model switch to 8B instant
