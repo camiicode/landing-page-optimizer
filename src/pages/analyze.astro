@@ -56,7 +56,7 @@ const urlParam = Astro.url.searchParams.get('url');
       return '<span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-medium">Low</span>';
     }
 
-    function renderNoKeyCard() {
+    function renderNoKeyCard(errorMsg?: string) {
       return `
         <div class="mt-12 mb-8 border border-indigo-500/20 bg-indigo-500/5 rounded-2xl p-8 text-center">
           <div class="flex justify-center mb-4">
@@ -69,7 +69,7 @@ const urlParam = Astro.url.searchParams.get('url');
           </div>
           <h2 class="text-lg font-semibold text-white mb-2">AI Recommendations</h2>
           <p class="text-sm text-gray-400 max-w-md mx-auto mb-4">
-            The demo AI quota has been reached. Use your own API key to get AI-powered conversion recommendations.
+            ${errorMsg || 'The demo AI quota has been reached. Use your own API key to get AI-powered conversion recommendations.'}
           </p>
           <div class="flex items-center gap-2 max-w-sm mx-auto mb-3">
             <input id="ai-key-input" type="text" placeholder="Paste your Gemini API key"
@@ -299,7 +299,7 @@ const urlParam = Astro.url.searchParams.get('url');
         }
 
         // Analysis unavailable
-        aiSection.innerHTML = customKey ? renderKeyFailedCard() : renderNoKeyCard();
+        aiSection.innerHTML = customKey ? renderKeyFailedCard() : renderNoKeyCard(result.error);
       } catch (err) {
         console.error('AI analysis background fetch failed:', err);
         aiSection.innerHTML = customKey ? renderKeyFailedCard() : renderNoKeyCard();
