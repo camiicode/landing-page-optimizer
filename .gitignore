@@ -35,3 +35,6 @@ pnpm-debug.log*
 .vite/
 
 nul
+
+AGENTS.md
+CLAUDE.md
