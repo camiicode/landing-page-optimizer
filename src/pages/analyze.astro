@@ -1,11 +1,46 @@
 ---
 import BaseLayout from '../components/layout/BaseLayout.astro';
 import Loading from '../components/common/Loading.astro';
+import ExportPDF from '../components/common/ExportPDF.astro';
 
 const urlParam = Astro.url.searchParams.get('url');
 ---
 
 <BaseLayout title="Analysis Results - LPO">
+  <!-- Top bar with history button -->
+  <div class="sticky top-0 z-50 border-b border-white/6 bg-brand/80 backdrop-blur-md">
+    <div class="mx-auto flex h-12 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div class="flex items-center gap-2">
+        <a href="/" class="flex items-center gap-2 group" aria-label="LPO — Home">
+          <div class="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <span class="text-xs font-semibold tracking-tight text-white">
+            <span class="text-indigo-400">LPO</span>
+          </span>
+        </a>
+      </div>
+      <button
+        id="history-toggle-btn"
+        class="flex items-center gap-1.5 rounded-md px-3! py-1.5! text-sm text-white/50 transition-colors hover:bg-white/5 hover:text-white/80"
+        aria-label="Open history sidebar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        History
+      </button>
+    </div>
+  </div>
+
+  <!-- Export PDF controls (hidden until dashboard renders) -->
+  <div id="export-controls" class="max-w-6xl mx-auto px-4 pt-6 hidden">
+    <div class="flex flex-col justify-end items-end">
+      <ExportPDF />
+    </div>
+  </div>
+
   <div id="analysis-root" class="max-w-6xl mx-auto px-4 py-8 min-h-screen">
     <Loading text="Preparing results..." size="lg" />
   </div>
@@ -254,6 +289,10 @@ const urlParam = Astro.url.searchParams.get('url');
           </div>` : ''}
         </div>
       `;
+
+      // Show export controls
+      const exportControls = document.getElementById('export-controls');
+      if (exportControls) exportControls.classList.remove('hidden');
     }
 
     // ── Background AI analysis ───────────────────────────────────
@@ -281,13 +320,14 @@ const urlParam = Astro.url.searchParams.get('url');
         if (result.success && result.analysis) {
           const analysis = result.analysis;
 
-          // Store with existing session data
+          // Store with existing session data + update history
           try {
             const stored = sessionStorage.getItem('extractionResult');
             if (stored) {
               const existing = JSON.parse(stored);
               existing.analysis = analysis;
               sessionStorage.setItem('extractionResult', JSON.stringify(existing));
+              saveToHistory(existing.data, existing.score, analysis);
             }
           } catch {}
 
@@ -306,6 +346,23 @@ const urlParam = Astro.url.searchParams.get('url');
       }
     }
 
+    // ── Guardar en historial ────────────────────────────────────
+    async function saveToHistory(data: any, score: any, analysis?: any) {
+      try {
+        const { addEntry, getHistory } = await import('../utils/history');
+        const sectionScores = score?.sections || {};
+        addEntry(
+          data.url,
+          data?.title || '',
+          score?.overall ?? 0,
+          sectionScores,
+          data,
+          score,
+          analysis,
+        );
+      } catch {}
+    }
+
     // ── Flujo principal ──────────────────────────────────────────
     (async () => {
       const stored = sessionStorage.getItem('extractionResult');
@@ -313,10 +370,21 @@ const urlParam = Astro.url.searchParams.get('url');
 
       if (stored) {
         try {
-          const { data, score } = JSON.parse(stored);
+          const { data, score, analysis } = JSON.parse(stored);
           if (data?.url) {
             renderDashboard(data, score);
-            fetchAIAnalysis(data);
+            saveToHistory(data, score, analysis);
+            if (analysis) {
+              const aiSection = document.getElementById('ai-recommendations');
+              if (aiSection) {
+                aiSection.innerHTML = renderAIRecommendations(analysis, data);
+                requestAnimationFrame(() => {
+                  aiSection.classList.remove('opacity-0', 'translate-y-4');
+                });
+              }
+            } else {
+              fetchAIAnalysis(data);
+            }
             return;
           }
         } catch {
@@ -340,6 +408,7 @@ const urlParam = Astro.url.searchParams.get('url');
           const { data, score } = result;
           sessionStorage.setItem('extractionResult', JSON.stringify({ data, score }));
           renderDashboard(data, score);
+          saveToHistory(data, score);
           fetchAIAnalysis(data);
         } catch (err: any) {
           if (root) {
@@ -385,6 +454,11 @@ const urlParam = Astro.url.searchParams.get('url');
       if (urlParam) {
         window.location.href = `${basePath}/analyze?url=${encodeURIComponent(urlParam)}`;
       }
+    });
+
+    // Toggle del historial sidebar
+    document.getElementById('history-toggle-btn')?.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('history-toggle'));
     });
   </script>
 </BaseLayout>

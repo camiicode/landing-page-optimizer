@@ -1,5 +1,7 @@
 ---
 import '../../styles/global.css';
+import HistorySidebar from '../common/HistorySidebar.astro';
+import ProgressModal from '../common/ProgressModal.astro';
 
 interface Props {
   title?: string;
@@ -100,6 +102,8 @@ const {
   </head>
 
   <body class="min-h-screen bg-brand-bg text-white antialiased">
+    <HistorySidebar />
+    <ProgressModal />
     <slot />
   </body>
 </html>
