@@ -9,6 +9,9 @@ export default defineConfig({
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: ['html2pdf.js/dist/html2pdf.bundle.min.js'],
+    },
   }
 });

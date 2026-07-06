@@ -8,6 +8,9 @@ export default defineConfig({
   output: 'static',
   base: '/landing-page-optimizer/',
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: ['html2pdf.js/dist/html2pdf.bundle.min.js'],
+    },
   }
 });
