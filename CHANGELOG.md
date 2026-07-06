@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.2.0] - 2026-07-06 — QOL Release
+
+### Added
+- **Persistent history**: Analysis history stored in localStorage with 20-entry FIFO eviction
+- **History sidebar**: Drawer with entry list, scores, relative timestamps, delete & export per entry
+- **Progress modal**: Animated bar with glow/pulse, 7 simulated stages, cancel button (AbortController), checkmark animation + 3s delay before redirect
+- **PDF export**: Individual report download from `/analyze` page + bulk "Export all" from sidebar
+- **32 new PDF tests**: 126 total passing (128 including 2 todo)
+
+### Changed
+- PDF generation uses built HTML (not live DOM capture) to avoid html2canvas hangs
+- `optimizeDeps.include` in Vite config for reliable html2pdf bundle loading
+- Progress modal replaces old spinner for extraction UX
+- Sidebar "Export all" button has spinner state during generation
+
+### Fixed
+- PDF "Download PDF" button no longer hangs silently — uses 30s timeout + inline error messages
+- History sidebar "Export all" no longer hangs — uses 30s timeout + alert on failure
+- Deep import `html2pdf.js/dist/html2pdf.bundle.min.js` resolved via `optimizeDeps.include`
+- Error feedback visible to user on all PDF export failures
+
+### Tests
+- 126 passing + 2 todo (128 total across 7 test files)
+- New `src/utils/__tests__/pdf.test.ts`: 30 tests for `buildExportHtml` (24) and `generatePdf` (6)
+
 ## [0.1.0] - 2026-07-02 — MVP Release
 
 ### Added
