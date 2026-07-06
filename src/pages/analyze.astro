@@ -11,7 +11,7 @@ const urlParam = Astro.url.searchParams.get('url');
   <div class="sticky top-0 z-50 border-b border-white/6 bg-brand/80 backdrop-blur-md">
     <div class="mx-auto flex h-12 max-w-6xl items-center justify-between px-4 sm:px-6">
       <div class="flex items-center gap-2">
-        <a href="/" class="flex items-center gap-2 group" aria-label="LPO — Home">
+        <a href={import.meta.env.BASE_URL || '/'} class="flex items-center gap-2 group" aria-label="LPO — Home">
           <div class="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
           </div>
