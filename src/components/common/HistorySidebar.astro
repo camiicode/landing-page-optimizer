@@ -1,0 +1,383 @@
+<!-- History Sidebar — drawer lateral con historial de análisis persistentes -->
+
+<div id="history-sidebar-root">
+  <div
+    id="history-overlay"
+    class="fixed inset-0 z-40 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-1000!"
+  ></div>
+
+  <aside
+    id="history-drawer"
+    class="fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw] bg-[#0d0d0d] border-r border-white/8 shadow-2xl shadow-black/60 transform -translate-x-full transition-transform! duration-700 ease-out overflow-y-auto"
+    aria-label="Analysis history"
+  >
+    <!-- Header del drawer -->
+    <div class="sticky top-0 z-10 bg-[#0d0d0d] border-b border-white/8 px-5 py-4 flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-white flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        History
+      </h2>
+      <button
+        id="history-close-btn"
+        class="text-white/30 hover:text-white/70 transition rounded-md p-1"
+        aria-label="Close history sidebar"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Contenido: se renderiza desde el script -->
+    <div id="history-list" class="px-3 py-3 space-y-1"></div>
+
+    <!-- Footer del drawer -->
+    <div id="history-footer" class="sticky bottom-0 bg-[#0d0d0d] border-t border-white/8 px-4 py-3 hidden">
+      <div id="history-limit-msg" class="hidden mb-2 rounded-lg border border-yellow-500/15 bg-yellow-500/5 px-3 py-2 text-[11px] text-yellow-400/80 text-center">
+        Storage full. Export old analyses before they are removed.
+      </div>
+      <button
+        id="history-export-all-btn"
+        class="w-full text-xs text-indigo-400/70 hover:text-indigo-400 transition rounded-md py-2 text-center flex items-center justify-center gap-1.5"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Export all as PDF
+      </button>
+      <button
+        id="history-clear-btn"
+        class="w-full text-xs text-red-400/70 hover:text-red-400 transition rounded-md py-2 text-center"
+      >
+        Clear all history
+      </button>
+    </div>
+  </aside>
+</div>
+
+<style>
+  #history-drawer::-webkit-scrollbar {
+    width: 4px;
+  }
+  #history-drawer::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #history-drawer::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 2px;
+  }
+  #history-drawer::-webkit-scrollbar-thumb:hover {
+    background: #4F46E5;
+  }
+</style>
+
+<script>
+  import { getHistory, removeEntry, clearAll } from '../../utils/history';
+  import { buildExportHtml, generatePdf } from '../../utils/pdf';
+
+  const DRAWER_STORAGE_KEY = 'historyDrawerOpen';
+
+  const overlay = document.getElementById('history-overlay')!;
+  const drawer = document.getElementById('history-drawer')!;
+  const list = document.getElementById('history-list')!;
+  const footer = document.getElementById('history-footer')!;
+  const closeBtn = document.getElementById('history-close-btn')!;
+
+  function relativeTime(ts: number): string {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(ts).toLocaleDateString();
+  }
+
+  function domainFromUrl(url: string): string {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return url;
+    }
+  }
+
+  function truncateUrl(url: string, max = 32): string {
+    return url.length > max ? url.slice(0, max) + '...' : url;
+  }
+
+  function scoreColor(s: number): string {
+    return s >= 70 ? 'text-green-400' : s >= 50 ? 'text-yellow-400' : 'text-red-400';
+  }
+
+  function scoreBg(s: number): string {
+    return s >= 70 ? 'bg-green-500/20' : s >= 50 ? 'bg-yellow-500/20' : 'bg-red-500/20';
+  }
+
+  function renderList() {
+    const entries = getHistory();
+
+    if (entries.length === 0) {
+      footer.classList.add('hidden');
+      list.innerHTML = `
+        <div class="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4a4a4a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <p class="text-sm text-gray-500">No analyses yet</p>
+          <p class="text-xs text-gray-600">Analyze your first landing page!</p>
+          <a href="/" class="mt-2 text-xs text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Go to Home
+          </a>
+        </div>`;
+      return;
+    }
+
+    footer.classList.remove('hidden');
+
+    // Show/hide limit message
+    const limitMsg = document.getElementById('history-limit-msg');
+    if (limitMsg) {
+      limitMsg.classList.toggle('hidden', entries.length < 20);
+    }
+
+    list.innerHTML = entries.map(entry => `
+      <div class="history-entry group relative flex items-start gap-3 rounded-lg px-3 py-2.5 cursor-pointer transition hover:bg-white/5"
+           data-id="${entry.id}">
+        <div class="shrink-0 w-9 h-9 rounded-lg ${scoreBg(entry.overall)} flex items-center justify-center">
+          <span class="text-xs font-bold ${scoreColor(entry.overall)}">${entry.overall}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs text-white/80 font-medium truncate">${entry.title || domainFromUrl(entry.url)}</div>
+          <div class="text-[11px] text-gray-500 truncate mt-0.5">${truncateUrl(entry.url)}</div>
+          <div class="text-[10px] text-gray-600 mt-0.5">${relativeTime(entry.timestamp)}</div>
+        </div>
+        <div class="flex items-center gap-0.5 shrink-0">
+          <button
+            class="history-export-one opacity-0 group-hover:opacity-100 transition p-0.5 rounded text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10"
+            data-id="${entry.id}"
+            aria-label="Export as PDF"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </button>
+          <button
+            class="history-remove shrink-0 opacity-0 group-hover:opacity-100 transition p-0.5 rounded text-gray-500 hover:text-red-400 hover:bg-red-500/10"
+            data-id="${entry.id}"
+            aria-label="Remove from history"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openSidebar() {
+    renderList();
+    overlay.classList.remove('pointer-events-none', 'opacity-0');
+    overlay.classList.add('opacity-100');
+    drawer.classList.remove('-translate-x-full');
+    drawer.classList.add('translate-x-0');
+    try { sessionStorage.setItem(DRAWER_STORAGE_KEY, 'open'); } catch {}
+  }
+
+  function closeSidebar() {
+    overlay.classList.add('pointer-events-none');
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    drawer.classList.remove('translate-x-0');
+    drawer.classList.add('-translate-x-full');
+    try { sessionStorage.removeItem(DRAWER_STORAGE_KEY); } catch {}
+  }
+
+  // ── Export functions (using shared utils) ────────────────────
+  let _exportingId: string | null = null;
+  let _exportingAll = false;
+
+  function setExportBtnState(id: string | null, busy: boolean) {
+    const listEl = document.getElementById('history-list');
+    if (!listEl) return;
+    const btns = listEl.querySelectorAll(`.history-export-one[data-id="${id}"]`) as NodeListOf<HTMLButtonElement>;
+    btns.forEach(b => {
+      if (busy) {
+        b.disabled = true;
+        b.innerHTML = `<svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="40" stroke-dashoffset="20"/></svg>`;
+      } else {
+        b.disabled = false;
+        b.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+      }
+    });
+  }
+
+  function setExportAllBtnState(busy: boolean, statusText?: string) {
+    const btn = document.getElementById('history-export-all-btn') as HTMLButtonElement | null;
+    if (!btn) return;
+    btn.disabled = busy;
+    if (busy) {
+      btn.innerHTML = `<svg class="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="40" stroke-dashoffset="20"/></svg> ${statusText || 'Exporting...'}`;
+    } else {
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Export all as PDF`;
+    }
+  }
+
+  async function exportSingleEntry(id: string) {
+    if (_exportingId) return;
+    const entries = getHistory();
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+
+    _exportingId = id;
+    setExportBtnState(id, true);
+
+    try {
+      const html = buildExportHtml(entry.data, entry.score, entry.analysis, entry.url, entry.timestamp);
+      const filename = `lpo-report-${entry.url.replace(/[^a-z0-9]/gi, '_').slice(0, 30)}.pdf`;
+      await generatePdf(html, filename);
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error';
+      console.error('PDF export failed:', err);
+      setExportBtnState(id, false);
+      setExportAllBtnState(false);
+      if (msg.includes('timed out')) {
+        alert('PDF generation timed out. Try again with fewer entries.');
+      } else {
+        alert(`Export failed: ${msg}`);
+      }
+      return;
+    } finally {
+      _exportingId = null;
+    }
+
+    setExportBtnState(id, false);
+  }
+
+  async function exportAllEntries() {
+    if (_exportingAll) return;
+    const entries = getHistory();
+    if (entries.length === 0) return;
+
+    _exportingAll = true;
+    setExportAllBtnState(true, `Exporting ${entries.length} reports...`);
+
+    try {
+      const html = entries
+        .map(e => buildExportHtml(e.data, e.score, e.analysis, e.url, e.timestamp))
+        .join('<div style="page-break-after: always;"></div>');
+      const filename = `lpo-all-reports-${Date.now()}.pdf`;
+      await generatePdf(html, filename);
+    } catch (err: any) {
+      const msg = err?.message || 'Unknown error';
+      console.error('PDF all export failed:', err);
+      if (msg.includes('timed out')) {
+        alert('PDF generation timed out. Try exporting fewer entries individually.');
+      } else {
+        alert(`Export failed: ${msg}`);
+      }
+      return;
+    } finally {
+      _exportingAll = false;
+      setExportAllBtnState(false);
+    }
+
+    setExportAllBtnState(false);
+  }
+
+  // ── Event delegation ──
+
+  // Toggle button en el header (dispara este evento personalizado)
+  document.addEventListener('history-toggle', () => {
+    const isOpen = drawer.classList.contains('translate-x-0');
+    if (isOpen) closeSidebar();
+    else openSidebar();
+  });
+
+  // Cerrar con overlay
+  overlay.addEventListener('click', closeSidebar);
+
+  // Cerrar con botón X
+  closeBtn.addEventListener('click', closeSidebar);
+
+  // Clic en entry → cargar análisis
+  list.addEventListener('click', (e) => {
+    const entryEl = (e.target as HTMLElement).closest('.history-entry') as HTMLElement | null;
+    if (!entryEl) return;
+
+    const removeBtn = (e.target as HTMLElement).closest('.history-remove');
+    if (removeBtn) {
+      const id = removeBtn.getAttribute('data-id');
+      if (id) {
+        removeEntry(id);
+        renderList();
+      }
+      return;
+    }
+
+    const exportBtn = (e.target as HTMLElement).closest('.history-export-one');
+    if (exportBtn) {
+      const id = exportBtn.getAttribute('data-id');
+      if (id) exportSingleEntry(id);
+      return;
+    }
+
+    // Click en la entry (no en remove/export) → cargar análisis
+    const id = entryEl.getAttribute('data-id');
+    if (!id) return;
+
+    const entries = getHistory();
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+
+    // Guardar en sessionStorage como si fuera un análisis recién hecho
+    try {
+      sessionStorage.setItem('extractionResult', JSON.stringify({
+        data: entry.data,
+        score: entry.score,
+        analysis: entry.analysis,
+      }));
+    } catch {}
+
+    // Redirigir a /analyze
+    const basePath = (import.meta as Record<string, any>).env?.BASE_URL?.replace(/\/+$/, '') || '';
+    window.location.href = `${basePath}/analyze?url=${encodeURIComponent(entry.url)}`;
+  });
+
+  // Export all
+  document.getElementById('history-export-all-btn')!.addEventListener('click', exportAllEntries);
+
+  // Clear all
+  document.getElementById('history-clear-btn')!.addEventListener('click', () => {
+    clearAll();
+    renderList();
+  });
+
+  // Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar();
+  });
+
+  // Re-abrir al navegar si estaba abierto antes
+  window.addEventListener('pageshow', () => {
+    try {
+      if (sessionStorage.getItem(DRAWER_STORAGE_KEY) === 'open') {
+        openSidebar();
+      }
+    } catch {}
+  });
+</script>
