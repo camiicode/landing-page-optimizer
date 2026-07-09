@@ -3,16 +3,16 @@
 <div id="history-sidebar-root">
   <div
     id="history-overlay"
-    class="fixed inset-0 z-40 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-1000!"
+    class="fixed inset-0 z-55 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-1000!"
   ></div>
 
   <aside
     id="history-drawer"
-    class="fixed top-0 left-0 z-50 h-full w-80 max-w-[85vw] bg-[#0d0d0d] border-r border-white/8 shadow-2xl shadow-black/60 transform -translate-x-full transition-transform! duration-700 ease-out overflow-y-auto"
+    class="fixed top-0 left-0 z-60 h-full w-80 max-w-[85vw] bg-[#0d0d0d] border-r border-white/8 shadow-2xl shadow-black/60 transform -translate-x-full transition-transform! duration-700 ease-out flex flex-col"
     aria-label="Analysis history"
   >
     <!-- Header del drawer -->
-    <div class="sticky top-0 z-10 bg-[#0d0d0d] border-b border-white/8 px-5 py-4 flex items-center justify-between">
+    <div class="shrink-0 bg-[#0d0d0d] border-b border-white/8 px-5 py-4 flex items-center justify-between">
       <h2 class="text-sm font-semibold text-white flex items-center gap-2">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
@@ -32,13 +32,26 @@
     </div>
 
     <!-- Contenido: se renderiza desde el script -->
-    <div id="history-list" class="px-3 py-3 space-y-1"></div>
+    <div id="history-list" class="flex-1 overflow-y-auto px-3 py-3 space-y-1"></div>
 
     <!-- Footer del drawer -->
-    <div id="history-footer" class="sticky bottom-0 bg-[#0d0d0d] border-t border-white/8 px-4 py-3 hidden">
+    <div id="history-footer" class="shrink-0 bg-[#0d0d0d] border-t border-white/8 px-4 py-3 hidden">
       <div id="history-limit-msg" class="hidden mb-2 rounded-lg border border-yellow-500/15 bg-yellow-500/5 px-3 py-2 text-[11px] text-yellow-400/80 text-center">
         Storage full. Export old analyses before they are removed.
       </div>
+
+      <!-- Rate limit bar -->
+      <div id="sidebar-rate-bar" class="mb-3 hidden">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[10px] text-white/35 uppercase tracking-wider">Analyses today</span>
+          <span id="sidebar-rate-label" class="text-[10px] font-medium"></span>
+        </div>
+        <div class="h-1.5 rounded-full bg-white/8 overflow-hidden">
+          <div id="sidebar-rate-fill" class="h-full rounded-full transition-all duration-500" style="width:0%"></div>
+        </div>
+        <p id="sidebar-rate-reset" class="text-[10px] text-white/25 mt-1"></p>
+      </div>
+
       <button
         id="history-export-all-btn"
         class="w-full text-xs text-indigo-400/70 hover:text-indigo-400 transition rounded-md py-2 text-center flex items-center justify-center gap-1.5"
@@ -189,8 +202,52 @@
     `).join('');
   }
 
+  function updateRateBar() {
+    const bar = document.getElementById('sidebar-rate-bar')!;
+    const label = document.getElementById('sidebar-rate-label')!;
+    const fill = document.getElementById('sidebar-rate-fill')!;
+    const reset = document.getElementById('sidebar-rate-reset')!;
+
+    const remaining = localStorage.getItem('lp_rate_remaining');
+    const resetAt = localStorage.getItem('lp_rate_reset');
+    if (remaining === null || resetAt === null) { bar.classList.add('hidden'); return; }
+
+    const now = Math.floor(Date.now() / 1000);
+    const resetUnix = parseInt(resetAt);
+    const resetIn = resetUnix - now;
+    if (resetIn <= 0) { bar.classList.add('hidden'); return; }
+
+    const n = parseInt(remaining);
+    const used = 3 - n;
+    const pct = (used / 3) * 100;
+
+    const colors: Record<number, string> = {
+      0: '#ef4444',
+      1: '#f97316',
+      2: '#f59e0b',
+      3: '#34d399',
+    };
+
+    bar.classList.remove('hidden');
+    const color = colors[n] || '#34d399';
+    label.textContent = `${n}/3 remaining`;
+    label.style.color = color;
+    fill.style.background = color;
+    fill.style.width = `${Math.min(pct, 100)}%`;
+
+    const h = Math.floor(resetIn / 3600);
+    const m = Math.floor((resetIn % 3600) / 60);
+    const resetDate = new Date(resetUnix * 1000);
+    const resetTimeStr = resetDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    reset.textContent = h > 0
+      ? `↻ Resets in ${h}h ${m}m`
+      : `↻ Resets in ${m}m`;
+    bar.title = `Resets at ${resetTimeStr}`;
+  }
+
   function openSidebar() {
     renderList();
+    updateRateBar();
     overlay.classList.remove('pointer-events-none', 'opacity-0');
     overlay.classList.add('opacity-100');
     drawer.classList.remove('-translate-x-full');

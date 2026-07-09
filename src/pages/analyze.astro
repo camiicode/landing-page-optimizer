@@ -55,6 +55,13 @@ const urlParam = Astro.url.searchParams.get('url');
       ? window.location.origin
       : 'https://lpo-backend.onrender.com';
 
+    // ── Rate limit / Visitor ID ──────────────────────────────
+    let visitorId = localStorage.getItem('app_visitor_id');
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem('app_visitor_id', visitorId);
+    }
+
     function clamp(n: number) { return Math.min(100, Math.max(0, n)); }
 
     function scoreColor(s: number) {
@@ -312,7 +319,10 @@ const urlParam = Astro.url.searchParams.get('url');
       try {
         const res = await fetch(`${API_BASE}/api/analyze`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Visitor-Id': visitorId,
+          },
           body: JSON.stringify({ url: data.url, data, apiKey: customKey }),
         });
         const result = await res.json();
@@ -399,11 +409,22 @@ const urlParam = Astro.url.searchParams.get('url');
         try {
           const res = await fetch(`${API_BASE}/api/extract`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Visitor-Id': visitorId,
+            },
             body: JSON.stringify({ url: urlParam }),
           });
           const result = await res.json();
           if (!res.ok || !result.success) throw new Error(result.error);
+
+          // ── Rate limit tracking ─────────────────────────
+          const remaining = res.headers.get('X-RateLimit-Remaining');
+          const resetSeconds = res.headers.get('X-RateLimit-Reset');
+          if (remaining !== null && resetSeconds !== null) {
+            localStorage.setItem('lp_rate_remaining', remaining);
+            localStorage.setItem('lp_rate_reset', String(Math.floor(Date.now() / 1000) + parseInt(resetSeconds)));
+          }
 
           const { data, score } = result;
           sessionStorage.setItem('extractionResult', JSON.stringify({ data, score }));
