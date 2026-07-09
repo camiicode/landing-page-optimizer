@@ -366,6 +366,12 @@ const features = [
               <!-- Loading state (replaced by ProgressModal) -->
               <div id="loading-container" class="hidden"></div>
 
+              <!-- Rate limit badge -->
+              <div id="rate-badge" class="mt-3 hidden items-center justify-center gap-1.5 text-xs">
+                <span id="rate-dot" class="inline-block h-1.5 w-1.5 rounded-full"></span>
+                <span id="rate-text" class="text-white/40"></span>
+              </div>
+
             </div>
 
           </div>
@@ -583,6 +589,52 @@ const features = [
     const ctaBtn          = document.querySelector('.cta-scroll')       as HTMLButtonElement;
     const btnOriginalHtml = analyzeBtn.innerHTML;
 
+    // ── Rate limit / Visitor ID ──────────────────────────────
+    let visitorId = localStorage.getItem('app_visitor_id');
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem('app_visitor_id', visitorId);
+    }
+
+    const rateBadge = document.getElementById('rate-badge') as HTMLDivElement;
+    const rateDot = document.getElementById('rate-dot') as HTMLSpanElement;
+    const rateText = document.getElementById('rate-text') as HTMLSpanElement;
+
+    function updateRateBadge(): void {
+      const remaining = localStorage.getItem('lp_rate_remaining');
+      const resetAt = localStorage.getItem('lp_rate_reset');
+      if (remaining === null || resetAt === null) {
+        rateBadge.classList.add('hidden');
+        return;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const resetIn = parseInt(resetAt) - now;
+      if (resetIn <= 0) {
+        localStorage.removeItem('lp_rate_remaining');
+        localStorage.removeItem('lp_rate_reset');
+        rateBadge.classList.add('hidden');
+        return;
+      }
+      const n = parseInt(remaining);
+      rateBadge.classList.remove('hidden');
+      if (n > 0) {
+        rateDot.className = 'inline-block h-1.5 w-1.5 rounded-full bg-emerald-400';
+        rateText.textContent = `◈ ${n}/3 analyses remaining`;
+      } else {
+        rateDot.className = 'inline-block h-1.5 w-1.5 rounded-full bg-amber-400';
+        rateText.textContent = `◈ 0/3 analyses — resets in ${formatResetTime(resetIn)}`;
+      }
+    }
+
+    function formatResetTime(seconds: number): string {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      if (h > 0) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+
+    updateRateBadge();
+
     // ── Temporizador del toast (para cancelar si se vuelve a mostrar) ─
     let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -715,7 +767,10 @@ const features = [
       try {
         const response = await fetch(`${API_BASE}/api/extract`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Visitor-Id': visitorId,
+          },
           body: JSON.stringify({ url }),
           signal: abortController.signal,
         });
@@ -727,9 +782,24 @@ const features = [
         // If aborted, don't proceed
         if (abortController.signal.aborted) return;
 
+        // ── Rate limit tracking from response headers ────────
+        const remaining = response.headers.get('X-RateLimit-Remaining');
+        const resetSeconds = response.headers.get('X-RateLimit-Reset');
+        if (remaining !== null && resetSeconds !== null) {
+          localStorage.setItem('lp_rate_remaining', remaining);
+          const resetAt = Math.floor(Date.now() / 1000) + parseInt(resetSeconds);
+          localStorage.setItem('lp_rate_reset', String(resetAt));
+          updateRateBadge();
+        }
+
+        if (response.status === 429) {
+          const data = await response.json();
+          throw new Error(data.error || 'Daily analysis limit reached (3/3).');
+        }
+
         const result = await response.json();
 
-        if (!response.ok || !result.success) {
+        if (!result.success) {
           throw new Error(result.error || 'Failed to analyze the page');
         }
 
