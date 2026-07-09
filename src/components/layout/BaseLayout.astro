@@ -26,8 +26,8 @@ const {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL || '/'}favicon.svg`} />
+    <link rel="icon" href={`${import.meta.env.BASE_URL || '/'}favicon.ico`} />
     <title>{title}</title>
 
     <!-- Fuente Inter desde Google Fonts -->
