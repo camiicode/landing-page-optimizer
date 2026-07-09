@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.1] - 2026-07-09 — Rate Limiting + Hotfixes
+
+### Added
+- **Server-side rate limiting**: 3 analyses/day per visitor using LRU cache (24h TTL, 5000 entries)
+- **Client-side rate limit UI**: Visitor ID via `crypto.randomUUID()`, rate badge on homepage, rate bar in history sidebar with color-coded remaining count
+- **13 new rate-limit tests**: Unit tests for `checkRateLimit()` + integration tests for `X-RateLimit-*` headers
+
+### Changed
+- `lru-cache` dependency for server-side rate limit storage
+- Both `/api/extract` and `/api/analyze` now accept `X-Visitor-Id` header for per-visitor rate tracking
+
+### Fixed
+- **Rate limit bars hidden in production**: Added `Access-Control-Expose-Headers` to CORS config so client-side JS can read `X-RateLimit-*` response headers
+- **Duplicate history entry on first analysis**: `index.astro` now uses canonical URL from API response (`data.url`) instead of raw user input when saving to history
+- **CORS preflight blocked**: Added `X-Visitor-Id` to `Access-Control-Allow-Headers`
+- **Favicon 404 in production**: Favicon paths use `import.meta.env.BASE_URL` instead of hardcoded `/`
+- **Hardcoded home links**: Navigation links use `BASE_URL` instead of `/` for GitHub Pages subdirectory support
+
+### Tests
+- 138 passing + 2 todo (140 total across 8 test files)
+- New `src/utils/__tests__/rate-limit.test.ts`: 13 tests
+- Updated `src/services/__tests__/api.extract.test.ts`: 3 new integration tests
+
 ## [0.2.0] - 2026-07-06 — QOL Release
 
 ### Added
