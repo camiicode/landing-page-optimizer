@@ -29,6 +29,7 @@ AI-powered landing page analysis platform that extracts, scores, and provides ac
 | **Vitest** | ^4.1.9 |
 | **Groq (LLaMA 3.1 8B)** | Default AI provider (14,400 req/day) |
 | **Gemini 2.0 Flash** | Optional (user API key) |
+| **LRU Cache** | ^11.5.2 |
 
 ## Project Structure
 
@@ -53,7 +54,8 @@ src/
 ├── utils/
 │   ├── history.ts        # localStorage persistence (max 20, FIFO)
 │   ├── pdf.ts            # PDF generation helpers
-│   └── __tests__/        # Vitest unit tests (43)
+│   ├── rate-limit.ts     # Server-side rate limiting (LRU cache)
+│   └── __tests__/        # Vitest unit tests (56)
 ├── types/
 │   ├── extraction.ts     # SectionScreenshots, ExtractedData
 │   └── analysis.ts       # AIAnalysis, AIRecommendation
@@ -70,6 +72,7 @@ src/
 - **History sidebar**: Persistent localStorage history (20 entries, FIFO eviction, re-open past analyses)
 - **Progress modal**: Animated extraction progress with 7 stages, cancel support, checkmark + 3s redirect
 - **PDF export**: Download individual reports or bulk export all history as PDF
+- **Rate limiting**: 3 analyses/day per visitor with server-side LRU cache + client-side UI badge/bar
 
 ## Commands
 
@@ -96,7 +99,7 @@ src/
 pnpm test
 ```
 
-Tests cover the scoring engine, AI analysis flow, prompt building, LLM client, history persistence, and PDF generation (126 passing + 2 todo).
+Tests cover the scoring engine, AI analysis flow, prompt building, LLM client, rate limiting, history persistence, and PDF generation (138 passing + 2 todo).
 
 ## Deployment
 
