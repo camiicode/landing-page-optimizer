@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { extractContent } from '../../services/extractor';
 import { calculateScore } from '../../services/scoring';
+import { checkRateLimit } from '../../utils/rate-limit';
 
 const EXTRACT_TIMEOUT_MS = 120_000;
 
@@ -10,10 +11,19 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-function json(body: unknown, status = 200): Response {
+function rateLimitHeaders(result: ReturnType<typeof checkRateLimit>) {
+  return {
+    'X-RateLimit-Limit': '3',
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.resetSeconds.toString(),
+    ...(result.allowed ? {} : { 'Retry-After': result.resetSeconds.toString() }),
+  };
+}
+
+function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS, ...extraHeaders },
   });
 }
 
@@ -21,11 +31,25 @@ export const OPTIONS: APIRoute = () => new Response(null, { status: 204, headers
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    const visitorId = request.headers.get('x-visitor-id');
+    const clientIp = request.headers.get('x-forwarded-for') || 'unknown';
+
+    const limit = checkRateLimit(visitorId, clientIp);
+    const rlHeaders = rateLimitHeaders(limit);
+
+    if (!limit.allowed) {
+      return json(
+        { success: false, error: 'Daily analysis limit reached (3/3). Come back tomorrow or use your own API key.' },
+        429,
+        rlHeaders,
+      );
+    }
+
     const body = await request.json();
     let { url } = body;
 
     if (!url || typeof url !== 'string') {
-      return json({ success: false, error: 'Invalid or missing URL' }, 400);
+      return json({ success: false, error: 'Invalid or missing URL' }, 400, rlHeaders);
     }
 
     url = url.trim();
@@ -37,7 +61,7 @@ export const POST: APIRoute = async ({ request }) => {
     try {
       new URL(url);
     } catch {
-      return json({ success: false, error: 'Invalid URL format' }, 400);
+      return json({ success: false, error: 'Invalid URL format' }, 400, rlHeaders);
     }
 
     const result = await Promise.race([
@@ -47,7 +71,7 @@ export const POST: APIRoute = async ({ request }) => {
       ),
     ]);
 
-    return json({ success: true, ...result });
+    return json({ success: true, ...result }, 200, rlHeaders);
   } catch (error) {
     console.error('Error in /api/extract:', error);
     return json(
