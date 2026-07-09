@@ -815,8 +815,9 @@ const features = [
         try {
           const { addEntry } = await import('../utils/history');
           const sectionScores = extScore?.sections || {};
+          const canonicalUrl = extData?.url || url;
           const added = addEntry(
-            url,
+            canonicalUrl,
             extData?.title || '',
             extScore?.overall ?? 0,
             sectionScores,
