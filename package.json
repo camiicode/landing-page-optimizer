@@ -20,7 +20,7 @@
     "@astrojs/node": "^11.0.0",
     "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.3.1",
-    "astro": "^7.0.3",
+    "astro": "^7.1.0",
     "html2pdf.js": "^0.14.0",
     "lru-cache": "^11.5.2",
     "playwright": "^1.61.1",
